@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container">
+
+    <h1>📊 FMEA Project Report</h1>
+
+    <p>
+        Complete overview of project analysis, product structure,
+        risk analysis and control planning.
+    </p>
+
+    <hr>
+
+    <!-- PROJECT SELECTION -->
+
+    <form method="GET" action="{{ url_for('reports') }}">
+
+        <label><b>Select Project</b></label>
+
+        <select name="project_id" onchange="this.form.submit()" required>
+
+            <option value="">-- Select Project --</option>
+
+            {% for project in projects %}
+
+            <option value="{{ project['id'] }}"
+                {% if selected_project_id|string == project['id']|string %}
+                    selected
+                {% endif %}
+            >
+
+                {{ project['project_name'] }}
+
+                {% if project['product_name'] %}
+                    - {{ project['product_name'] }}
+                {% endif %}
+
+            </option>
+
+            {% endfor %}
+
+        </select>
+
+    </form>
+
+
+    {% if selected_project_id %}
+
+    <!-- PROJECT INFORMATION -->
+
+    <hr>
+
+    <h2>Project Information</h2>
+
+    {% if project_info %}
+
+    <table width="100%">
+
+        <tr>
+            <th>Project Name</th>
+            <td>{{ project_info['project_name'] }}</td>
+        </tr>
+
+        <tr>
+            <th>Product Name</th>
+            <td>{{ project_info['product_name'] }}</td>
+        </tr>
+
+        <tr>
+            <th>Customer</th>
+            <td>{{ project_info['customer'] }}</td>
+        </tr>
+
+        <tr>
+            <th>Project Number</th>
+            <td>{{ project_info['project_number'] }}</td>
+        </tr>
+
+        <tr>
+            <th>Created Date</th>
+            <td>{{ project_info['created_date'] }}</td>
+        </tr>
+
+    </table>
+
+    {% endif %}
+
+
+    <!-- PROJECT SUMMARY -->
+
+    <hr>
+
+    <h2>Project Summary</h2>
+
+    <table width="100%">
+
+        <tr>
+            <th>Module</th>
+            <th>Total Records</th>
+        </tr>
+
+        <tr>
+            <td>Functional Analysis</td>
+            <td>{{ summary['functional_analysis'] }}</td>
+        </tr>
+
+        <tr>
+            <td>Boundary Diagram</td>
+            <td>{{ summary['boundary_diagram'] }}</td>
+        </tr>
+
+        <tr>
+            <td>Product Structure</td>
+            <td>{{ summary['product_structure'] }}</td>
+        </tr>
+
+        <tr>
+            <td>Key Characteristics</td>
+            <td>{{ summary['key_characteristics'] }}</td>
+        </tr>
+
+        <tr>
+            <td>Functional Links</td>
+            <td>{{ summary['functional_links'] }}</td>
+        </tr>
+
+        <tr>
+            <td>DFMEA</td>
+            <td>{{ summary['dfmea'] }}</td>
+        </tr>
+
+        <tr>
+            <td>PFMEA</td>
+            <td>{{ summary['pfmea'] }}</td>
+        </tr>
+
+        <tr>
+            <td>Control Plan</td>
+            <td>{{ summary['control_plan'] }}</td>
+        </tr>
+
+    </table>
+
+
+    <!-- PRODUCT STRUCTURE -->
+
+    <hr>
+
+    <h2>🌳 Product Structure</h2>
+
+    {% if components %}
+
+    <table width="100%">
+
+        <tr>
+            <th>Level</th>
+            <th>Component</th>
+            <th>Type</th>
+            <th>Label</th>
+            <th>Part Number</th>
+        </tr>
+
+        {% for component in components %}
+
+        <tr>
+
+            <td>{{ component['level'] }}</td>
+
+            <td>{{ component['component_name'] }}</td>
+
+            <td>{{ component['component_type'] }}</td>
+
+            <td>{{ component['label'] }}</td>
+
+            <td>{{ component['part_number'] }}</td>
+
+        </tr>
+
+        {% endfor %}
+
+    </table>
+
+    {% else %}
+
+    <p>No product structure records found.</p>
+
+    {% endif %}
+
+
+    <!-- EXPORT -->
+
+    <hr>
+
+    <h2>📥 Export Report</h2>
+
+    <p>
+        Use the button below to print the complete report
+        or save it as a PDF.
+    </p>
+
+    <button onclick="window.print()">
+        🖨 Print / Save as PDF
+    </button>
+    <br><br>
+
+<a href="{{ url_for('export_excel', project_id=selected_project_id) }}"
+   class="primary-btn">
+    📥 Download Excel Report
+</a>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}

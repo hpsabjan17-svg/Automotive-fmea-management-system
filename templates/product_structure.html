@@ -1,0 +1,381 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container">
+
+    <h1>Product Structure</h1>
+
+    <p>
+        Create the product structure and component hierarchy
+        for your automotive interior product.
+    </p>
+
+    <hr>
+
+    <!-- ================================================= -->
+    <!-- ADD COMPONENT FORM -->
+    <!-- ================================================= -->
+
+    <h2>Add Component</h2>
+
+    <form method="POST">
+
+        <!-- PROJECT -->
+        <label for="project_id">
+            Select Project
+        </label>
+
+        <select name="project_id" id="project_id" required>
+
+            <option value="">
+                Select Project
+            </option>
+
+            {% for project in projects %}
+
+                <option
+                    value="{{ project['id'] }}"
+                    {% if selected_project_id|string == project['id']|string %}
+                        selected
+                    {% endif %}
+                >
+
+                    {{ project['project_name'] }}
+
+                    {% if project['product_name'] %}
+                        - {{ project['product_name'] }}
+                    {% endif %}
+
+                </option>
+
+            {% endfor %}
+
+        </select>
+
+        <br><br>
+
+
+        <!-- PARENT COMPONENT -->
+        <label for="parent_id">
+            Parent Component
+        </label>
+
+        <select name="parent_id" id="parent_id">
+
+            <option value="">
+                Root / Main Product
+            </option>
+
+            {% for component in components %}
+
+                <option value="{{ component['id'] }}">
+
+                    {% for i in range(component['level']|int) %}
+                        &nbsp;&nbsp;&nbsp;&nbsp;
+                    {% endfor %}
+
+                    {{ component['component_name'] }}
+
+                    {% if component['label'] %}
+                        - {{ component['label'] }}
+                    {% endif %}
+
+                </option>
+
+            {% endfor %}
+
+        </select>
+
+        <br><br>
+
+
+        <!-- COMPONENT NAME -->
+        <label for="component_name">
+            Component Name
+        </label>
+
+        <input
+            type="text"
+            id="component_name"
+            name="component_name"
+            placeholder="Example: Instrument Panel"
+            required
+        >
+
+        <br><br>
+
+
+        <!-- COMPONENT TYPE -->
+        <label for="component_type">
+            Component Type
+        </label>
+
+        <select
+            name="component_type"
+            id="component_type"
+            required
+        >
+
+            <option value="">
+                Select Type
+            </option>
+
+            <option value="Product">
+                Product
+            </option>
+
+            <option value="Assembly">
+                Assembly
+            </option>
+
+            <option value="Component">
+                Component
+            </option>
+
+            <option value="Sub-component">
+                Sub-component
+            </option>
+
+        </select>
+
+        <br><br>
+
+
+        <!-- LABEL -->
+        <label for="label">
+            Hierarchy Label
+        </label>
+
+        <input
+            type="text"
+            id="label"
+            name="label"
+            placeholder="Example: IP-001"
+        >
+
+        <br><br>
+
+
+        <!-- PART NUMBER -->
+        <label for="part_number">
+            Part Number
+        </label>
+
+        <input
+            type="text"
+            id="part_number"
+            name="part_number"
+            placeholder="Example: IP-1000"
+        >
+
+        <br><br>
+
+
+        <!-- LEVEL -->
+        <label for="level">
+            Hierarchy Level
+        </label>
+
+        <select name="level" id="level">
+
+            <option value="0">
+                Level 0 - Main Product
+            </option>
+
+            <option value="1">
+                Level 1 - Assembly
+            </option>
+
+            <option value="2">
+                Level 2 - Component
+            </option>
+
+            <option value="3">
+                Level 3 - Sub-component
+            </option>
+
+        </select>
+
+        <br><br>
+
+
+        <!-- DESCRIPTION -->
+        <label for="description">
+            Description
+        </label>
+
+        <br>
+
+        <textarea
+            id="description"
+            name="description"
+            rows="4"
+            cols="50"
+            placeholder="Enter component description"
+        ></textarea>
+
+        <br><br>
+
+
+        <!-- BUTTON -->
+        <button type="submit">
+            + Add Component
+        </button>
+
+    </form>
+
+    <hr>
+
+
+    <!-- ================================================= -->
+    <!-- PRODUCT STRUCTURE TABLE -->
+    <!-- ================================================= -->
+
+    <h2>Product Structure Records</h2>
+
+    {% if components %}
+
+    <table
+        border="1"
+        cellpadding="10"
+        cellspacing="0"
+        width="100%"
+    >
+
+        <thead>
+
+            <tr>
+
+                <th>ID</th>
+
+                <th>Level</th>
+
+                <th>Component</th>
+
+                <th>Type</th>
+
+                <th>Label</th>
+
+                <th>Part Number</th>
+
+                <th>Parent</th>
+
+                <th>Description</th>
+
+            </tr>
+
+        </thead>
+
+
+        <tbody>
+
+            {% for component in components %}
+
+            <tr>
+
+                <td>
+                    {{ component['id'] }}
+                </td>
+
+                <td>
+                    {{ component['level'] }}
+                </td>
+
+                <td>
+
+                    {% for i in range(component['level']|int) %}
+                        &nbsp;&nbsp;&nbsp;&nbsp;
+                    {% endfor %}
+
+                    {% if component['level']|int > 0 %}
+                        └─
+                    {% endif %}
+
+                    <strong>
+                        {{ component['component_name'] }}
+                    </strong>
+
+                </td>
+
+                <td>
+                    {{ component['component_type'] }}
+                </td>
+
+                <td>
+                    {{ component['label'] }}
+                </td>
+
+                <td>
+                    {{ component['part_number'] }}
+                </td>
+
+                <td>
+
+                    {% if component['parent_id'] %}
+
+                        {% for parent in components %}
+
+                            {% if parent['id'] == component['parent_id'] %}
+
+                                {{ parent['component_name'] }}
+
+                            {% endif %}
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        ROOT
+
+                    {% endif %}
+
+                </td>
+
+                <td>
+                    {{ component['description'] }}
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+    {% else %}
+
+        <p>
+            No components added yet.
+        </p>
+
+    {% endif %}
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- PROJECT SELECTION SCRIPT -->
+<!-- ===================================================== -->
+
+<script>
+
+document.getElementById("project_id").addEventListener("change", function () {
+
+    var projectId = this.value;
+
+    if (projectId) {
+
+        window.location.href =
+            "{{ url_for('product_structure') }}" +
+            "?project_id=" +
+            projectId;
+
+    }
+
+});
+
+</script>
+
+{% endblock %}

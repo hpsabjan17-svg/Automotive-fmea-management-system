@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container">
+
+    <h1>Key Characteristics</h1>
+
+    <form method="GET" action="{{ url_for('key_characteristics') }}">
+
+        <label><b>Select Project</b></label>
+
+        <select name="project_id" onchange="this.form.submit()">
+
+            <option value="">-- Select Project --</option>
+
+            {% for project in projects %}
+
+            <option value="{{ project['id'] }}"
+                {% if selected_project_id|string == project['id']|string %}
+                    selected
+                {% endif %}
+            >
+                {{ project['project_name'] }}
+                {% if project['product_name'] %}
+                    - {{ project['product_name'] }}
+                {% endif %}
+            </option>
+
+            {% endfor %}
+
+        </select>
+
+    </form>
+
+    {% if selected_project_id %}
+
+    <br>
+
+    <form method="POST">
+
+        <input type="hidden"
+               name="project_id"
+               value="{{ selected_project_id }}">
+
+        <label><b>Select Component</b></label>
+
+        <select name="component_id" required>
+
+            <option value="">-- Select Component --</option>
+
+            {% for component in components %}
+
+            <option value="{{ component['id'] }}">
+                {{ component['component_name'] }}
+                {% if component['part_number'] %}
+                    - {{ component['part_number'] }}
+                {% endif %}
+            </option>
+
+            {% endfor %}
+
+        </select>
+
+        <br><br>
+
+        <label>Characteristic</label>
+
+        <input type="text"
+               name="characteristic"
+               placeholder="Enter characteristic"
+               required>
+
+        <br><br>
+
+        <label>Specification</label>
+
+        <input type="text"
+               name="specification"
+               placeholder="Example: 100 mm">
+
+        <br><br>
+
+        <label>Tolerance</label>
+
+        <input type="text"
+               name="tolerance"
+               placeholder="Example: +/- 2 mm">
+
+        <br><br>
+
+        <label>Severity</label>
+
+        <input type="number"
+               name="severity"
+               min="1"
+               max="10"
+               value="1">
+
+        <br><br>
+
+        <label>Responsibility</label>
+
+        <input type="text"
+               name="responsibility"
+               placeholder="Enter responsibility">
+
+        <br><br>
+
+        <button type="submit">
+            + Add Characteristic
+        </button>
+
+    </form>
+
+    {% endif %}
+
+    <hr>
+
+    <h2>Key Characteristic Records</h2>
+
+    {% if records %}
+
+    <table border="1" cellpadding="8">
+
+        <tr>
+            <th>Project</th>
+            <th>Component</th>
+            <th>Characteristic</th>
+            <th>Specification</th>
+            <th>Tolerance</th>
+            <th>Severity</th>
+            <th>Responsibility</th>
+        </tr>
+
+        {% for record in records %}
+
+        <tr>
+            <td>{{ record['project_name'] }}</td>
+            <td>{{ record['component_name'] }}</td>
+            <td>{{ record['characteristic'] }}</td>
+            <td>{{ record['specification'] }}</td>
+            <td>{{ record['tolerance'] }}</td>
+            <td>{{ record['severity'] }}</td>
+            <td>{{ record['responsibility'] }}</td>
+        </tr>
+
+        {% endfor %}
+
+    </table>
+
+    {% else %}
+
+    <p>No key characteristics added yet.</p>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}

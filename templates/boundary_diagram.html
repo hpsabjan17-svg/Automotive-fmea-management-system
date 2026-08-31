@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container">
+
+    <h1>Boundary Diagram</h1>
+
+    <p>
+        Define external elements and their interactions with the product.
+    </p>
+
+    <form method="POST">
+
+        <label>Select Project</label>
+
+        <select name="project_id" required>
+            <option value="">Select Project</option>
+
+            {% for project in projects %}
+                <option value="{{ project[0] }}">
+                    {{ project[1] }} - {{ project[2] }}
+                </option>
+            {% endfor %}
+        </select>
+
+
+        <label>External Element</label>
+
+        <input
+            type="text"
+            name="external_element"
+            placeholder="Example: HVAC System"
+            required
+        >
+
+
+        <label>Interaction</label>
+
+        <input
+            type="text"
+            name="interaction"
+            placeholder="Example: Air flow"
+            required
+        >
+
+
+        <label>Direction</label>
+
+        <select name="direction" required>
+            <option value="">Select Direction</option>
+            <option value="Input">Input</option>
+            <option value="Output">Output</option>
+            <option value="Bidirectional">Bidirectional</option>
+        </select>
+
+
+        <label>Description</label>
+
+        <textarea
+            name="description"
+            placeholder="Describe the interface or interaction"
+        ></textarea>
+
+
+        <button type="submit">
+            + Add Boundary Element
+        </button>
+
+    </form>
+
+
+    <h2>Boundary Diagram Records</h2>
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Project</th>
+                <th>External Element</th>
+                <th>Interaction</th>
+                <th>Direction</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for boundary in boundaries %}
+
+            <tr>
+                <td>{{ boundary[0] }}</td>
+                <td>{{ boundary[1] }}</td>
+                <td>{{ boundary[2] }}</td>
+                <td>{{ boundary[3] }}</td>
+                <td>{{ boundary[4] }}</td>
+                <td>{{ boundary[5] }}</td>
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</div>
+
+{% endblock %}

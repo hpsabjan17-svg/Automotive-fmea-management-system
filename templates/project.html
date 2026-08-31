@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container">
+    <h1>Project Details</h1>
+    <p>Create a new DFMEA / PFMEA project</p>
+
+    <form method="POST">
+
+        <label>Project Name</label>
+        <input type="text" name="project_name" placeholder="Enter project name" required>
+
+        <label>Product Name</label>
+        <select name="product_name" required>
+            <option value="">Select Product</option>
+            <option value="Instrument Panel">Instrument Panel</option>
+            <option value="Door Panel">Door Panel</option>
+            <option value="Center Console">Center Console</option>
+            <option value="Hard Trim">Hard Trim</option>
+            <option value="Other">Other</option>
+        </select>
+
+        <label>Customer</label>
+        <input type="text" name="customer" placeholder="Enter customer name">
+
+        <label>Project Number</label>
+        <input type="text" name="project_number" placeholder="Enter project number">
+
+        <label>Created Date</label>
+        <input type="date" name="created_date" value="{{ today }}" required>
+
+        <button type="submit">Create Project</button>
+
+    </form>
+</div>
+
+{% endblock %}

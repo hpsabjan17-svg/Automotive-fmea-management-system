@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container">
+
+    <h1>Functional Analysis</h1>
+
+    <p>
+        Define product functions and their functional requirements.
+    </p>
+
+    <form method="POST">
+
+        <label>Select Project</label>
+
+        <select name="project_id" required>
+            <option value="">Select Project</option>
+
+            {% for project in projects %}
+                <option value="{{ project[0] }}">
+                    {{ project[1] }} - {{ project[2] }}
+                </option>
+            {% endfor %}
+
+        </select>
+
+
+        <label>Function</label>
+
+        <input
+            type="text"
+            name="function"
+            placeholder="Example: Support occupant information display"
+            required
+        >
+
+
+        <label>Functional Requirement</label>
+
+        <textarea
+            name="requirement"
+            placeholder="Enter functional requirement"
+            required
+        ></textarea>
+
+
+        <button type="submit">
+            + Add Function
+        </button>
+
+    </form>
+
+
+    <h2>Functional Analysis Records</h2>
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Project</th>
+                <th>Function</th>
+                <th>Requirement</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for analysis in analyses %}
+
+            <tr>
+                <td>{{ analysis[0] }}</td>
+                <td>{{ analysis[1] }}</td>
+                <td>{{ analysis[2] }}</td>
+                <td>{{ analysis[3] }}</td>
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</div>
+
+{% endblock %}

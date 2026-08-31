@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container">
+
+    <h1>Functional Requirement → Structure Linking</h1>
+
+    <!-- SELECT PROJECT -->
+    <form method="GET" action="{{ url_for('functional_links') }}">
+
+        <label><b>Select Project</b></label>
+
+        <select name="project_id" onchange="this.form.submit()" required>
+
+            <option value="">-- Select Project --</option>
+
+            {% for project in projects %}
+
+            <option value="{{ project['id'] }}"
+                {% if selected_project_id|string == project['id']|string %}
+                selected
+                {% endif %}
+            >
+                {{ project['project_name'] }}
+                {% if project['product_name'] %}
+                    - {{ project['product_name'] }}
+                {% endif %}
+            </option>
+
+            {% endfor %}
+
+        </select>
+
+    </form>
+
+
+    {% if selected_project_id %}
+
+    <br>
+
+    <form method="POST">
+
+        <!-- PROJECT -->
+        <input type="hidden"
+               name="project_id"
+               value="{{ selected_project_id }}">
+
+
+        <!-- SELECT FUNCTION -->
+        <label><b>Select Function</b></label>
+
+        <select name="function_id" required>
+
+            <option value="">
+                -- Select Function --
+            </option>
+
+            {% for function in functions %}
+
+            <option value="{{ function['id'] }}">
+
+                {{ function['function'] }}
+
+                {% if function['requirement'] %}
+                    - {{ function['requirement'] }}
+                {% endif %}
+
+            </option>
+
+            {% endfor %}
+
+        </select>
+
+        <br><br>
+
+
+        <!-- SELECT COMPONENT -->
+        <label><b>Select Component</b></label>
+
+        <select name="component_id" required>
+
+            <option value="">
+                -- Select Component --
+            </option>
+
+            {% for component in components %}
+
+            <option value="{{ component['id'] }}">
+
+                {{ component['component_name'] }}
+
+                {% if component['part_number'] %}
+                    - {{ component['part_number'] }}
+                {% endif %}
+
+            </option>
+
+            {% endfor %}
+
+        </select>
+
+        <br><br>
+
+
+        <!-- REQUIREMENT -->
+        <label><b>Linked Requirement</b></label>
+
+        <textarea
+            name="requirement"
+            rows="4"
+            placeholder="Enter linked requirement"
+            required
+        ></textarea>
+
+        <br><br>
+
+        <button type="submit">
+            + Create Link
+        </button>
+
+    </form>
+
+    {% endif %}
+
+
+    <hr>
+
+
+    <!-- EXISTING LINKS -->
+
+    <h2>Functional Requirement → Structure Matrix</h2>
+
+    {% if records %}
+
+    <table border="1" cellpadding="8" cellspacing="0" width="100%">
+
+        <tr>
+            <th>Project</th>
+            <th>Function</th>
+            <th>Function Requirement</th>
+            <th>Component</th>
+            <th>Linked Requirement</th>
+        </tr>
+
+        {% for record in records %}
+
+        <tr>
+
+            <td>
+                {{ record['project_name'] }}
+            </td>
+
+            <td>
+                {{ record['function'] }}
+            </td>
+
+            <td>
+                {{ record['function_requirement'] }}
+            </td>
+
+            <td>
+                {{ record['component_name'] }}
+            </td>
+
+            <td>
+                {{ record['linked_requirement'] }}
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+    </table>
+
+    {% else %}
+
+    <p>No functional links created yet.</p>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}

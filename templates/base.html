@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Automotive FMEA System</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+
+</head>
+
+
+<body>
+
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <header>
+
+        <div class="logo">
+            Automotive FMEA
+        </div>
+
+
+        <!-- =================================================
+             NAVIGATION
+        ================================================== -->
+
+        <nav>
+
+            <a href="{{ url_for('dashboard') }}">
+                Dashboard
+            </a>
+
+
+            <a href="{{ url_for('project') }}">
+                Project Details
+            </a>
+
+
+            <a href="{{ url_for('functional_analysis') }}">
+                Functional Analysis
+            </a>
+
+
+            <a href="{{ url_for('boundary_diagram') }}">
+                Boundary Diagram
+            </a>
+
+
+            <a href="{{ url_for('product_structure') }}">
+                Product Structure
+            </a>
+
+
+            <a href="{{ url_for('key_characteristics') }}">
+                Key Characteristics
+            </a>
+
+
+            <a href="{{ url_for('functional_links') }}">
+                Functional Linking
+            </a>
+
+
+            <a href="{{ url_for('dfmea') }}">
+                DFMEA
+            </a>
+
+
+            <a href="{{ url_for('pfmea') }}">
+                PFMEA
+            </a>
+
+
+            <a href="{{ url_for('control_plan') }}">
+                Control Plan
+            </a>
+
+
+            <a href="{{ url_for('reports') }}">
+                Reports
+            </a>
+
+        </nav>
+
+    </header>
+
+
+    <!-- =====================================================
+         MAIN CONTENT
+    ====================================================== -->
+
+    <main>
+
+        {% block content %}
+
+        {% endblock %}
+
+    </main>
+
+
+    <!-- =====================================================
+         FOOTER
+    ====================================================== -->
+
+    <footer>
+
+        <p>
+            Automotive DFMEA &amp; PFMEA Management System
+        </p>
+
+    </footer>
+
+
+    <!-- =====================================================
+         JAVASCRIPT
+    ====================================================== -->
+
+    <script src="{{ url_for('static', filename='js/app.js') }}">
+    </script>
+
+
+</body>
+
+</html>
