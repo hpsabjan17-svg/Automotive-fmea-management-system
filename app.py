@@ -1,7 +1,7 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, send_file
 from openpyxl import Workbook
-from flask import send_file
 from io import BytesIO
+from datetime import date
 import sqlite3
 import os
 
@@ -24,6 +24,28 @@ def get_db():
 
 
 # =========================================================
+# ADD COLUMN IF MISSING
+# =========================================================
+
+def add_column_if_missing(cursor, table_name, column_name, column_definition):
+
+    columns = cursor.execute(
+        f"PRAGMA table_info({table_name})"
+    ).fetchall()
+
+    existing_columns = [column[1] for column in columns]
+
+    if column_name not in existing_columns:
+
+        cursor.execute(
+            f"""
+            ALTER TABLE {table_name}
+            ADD COLUMN {column_name} {column_definition}
+            """
+        )
+
+
+# =========================================================
 # DATABASE SETUP
 # =========================================================
 
@@ -31,6 +53,10 @@ def setup_database():
 
     conn = get_db()
     cursor = conn.cursor()
+
+    # =====================================================
+    # PROJECTS
+    # =====================================================
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS projects (
@@ -43,25 +69,141 @@ def setup_database():
         )
     """)
 
+    # Add newer project fields without deleting old data
+
+    add_column_if_missing(
+        cursor,
+        "projects",
+        "oem_name",
+        "TEXT DEFAULT 'Generic'"
+    )
+
+    add_column_if_missing(
+        cursor,
+        "projects",
+        "compliance_mode",
+        "TEXT DEFAULT 'AIAG-VDA 2019'"
+    )
+
+    # =====================================================
+    # OEM STANDARDS
+    # =====================================================
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS oem_standards (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            oem_name TEXT NOT NULL UNIQUE,
+            standard_framework TEXT NOT NULL,
+            cc_symbol TEXT,
+            sc_symbol TEXT,
+            archiving_period_years INTEGER DEFAULT 10,
+            description TEXT
+        )
+    """)
+
+    oem_data = [
+
+        (
+            "Volkswagen Group",
+            "AIAG-VDA",
+            "D/TLD",
+            "K",
+            15,
+            "OEM CSR prototype configuration for Volkswagen Group."
+        ),
+
+        (
+            "BMW Group",
+            "AIAG-VDA",
+            "DS",
+            "PTC",
+            12,
+            "OEM CSR prototype configuration for BMW Group."
+        ),
+
+        (
+            "Ford Motor Co",
+            "AIAG-VDA",
+            "∇",
+            "SC",
+            10,
+            "OEM CSR prototype configuration for Ford Motor Co."
+        ),
+
+        (
+            "General Motors",
+            "AIAG-VDA",
+            "KPC",
+            "PQC",
+            10,
+            "OEM CSR prototype configuration for General Motors."
+        ),
+
+        (
+            "Stellantis",
+            "AIAG-VDA",
+            "S",
+            "R",
+            10,
+            "OEM CSR prototype configuration for Stellantis."
+        ),
+
+        (
+            "Generic",
+            "AIAG-VDA 2019",
+            "CC",
+            "SC",
+            10,
+            "Generic FMEA configuration."
+        )
+    ]
+
+    cursor.executemany("""
+        INSERT OR IGNORE INTO oem_standards
+        (
+            oem_name,
+            standard_framework,
+            cc_symbol,
+            sc_symbol,
+            archiving_period_years,
+            description
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, oem_data)
+
+    # =====================================================
+    # FUNCTIONAL ANALYSIS
+    # =====================================================
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS functional_analysis (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             project_id INTEGER,
             function TEXT,
-            requirement TEXT
+            requirement TEXT,
+            FOREIGN KEY (project_id) REFERENCES projects(id)
         )
     """)
+
+    # =====================================================
+    # BOUNDARY DIAGRAM
+    # =====================================================
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS boundary_diagram (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             project_id INTEGER,
-            external_element TEXT,
+            external_element TEXT NOT NULL,
             interaction TEXT,
             direction TEXT,
-            description TEXT
+            description TEXT,
+            FOREIGN KEY (project_id) REFERENCES projects(id)
         )
     """)
+
+    # =====================================================
+    # PRODUCT STRUCTURE
+    # =====================================================
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS product_structure (
@@ -73,9 +215,15 @@ def setup_database():
             label TEXT,
             part_number TEXT,
             level INTEGER DEFAULT 0,
-            description TEXT
+            description TEXT,
+            FOREIGN KEY (project_id) REFERENCES projects(id),
+            FOREIGN KEY (parent_id) REFERENCES product_structure(id)
         )
     """)
+
+    # =====================================================
+    # KEY CHARACTERISTICS
+    # =====================================================
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS key_characteristics (
@@ -86,9 +234,15 @@ def setup_database():
             specification TEXT,
             tolerance TEXT,
             severity INTEGER,
-            responsibility TEXT
+            responsibility TEXT,
+            FOREIGN KEY (project_id) REFERENCES projects(id),
+            FOREIGN KEY (component_id) REFERENCES product_structure(id)
         )
     """)
+
+    # =====================================================
+    # FUNCTIONAL LINKS
+    # =====================================================
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS functional_links (
@@ -96,9 +250,16 @@ def setup_database():
             project_id INTEGER,
             function_id INTEGER,
             component_id INTEGER,
-            requirement TEXT
+            requirement TEXT,
+            FOREIGN KEY (project_id) REFERENCES projects(id),
+            FOREIGN KEY (function_id) REFERENCES functional_analysis(id),
+            FOREIGN KEY (component_id) REFERENCES product_structure(id)
         )
     """)
+
+    # =====================================================
+    # DFMEA
+    # =====================================================
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS dfmea (
@@ -118,9 +279,15 @@ def setup_database():
             recommended_action TEXT,
             responsibility TEXT,
             target_date TEXT,
-            action_status TEXT
+            action_status TEXT,
+            FOREIGN KEY (project_id) REFERENCES projects(id),
+            FOREIGN KEY (component_id) REFERENCES product_structure(id)
         )
     """)
+
+    # =====================================================
+    # PFMEA
+    # =====================================================
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS pfmea (
@@ -141,9 +308,15 @@ def setup_database():
             recommended_action TEXT,
             responsibility TEXT,
             target_date TEXT,
-            action_status TEXT
+            action_status TEXT,
+            FOREIGN KEY (project_id) REFERENCES projects(id),
+            FOREIGN KEY (component_id) REFERENCES product_structure(id)
         )
     """)
+
+    # =====================================================
+    # CONTROL PLAN
+    # =====================================================
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS control_plan (
@@ -158,7 +331,9 @@ def setup_database():
             sample_size TEXT,
             frequency TEXT,
             responsibility TEXT,
-            reaction_plan TEXT
+            reaction_plan TEXT,
+            FOREIGN KEY (project_id) REFERENCES projects(id),
+            FOREIGN KEY (component_id) REFERENCES product_structure(id)
         )
     """)
 
@@ -198,11 +373,37 @@ def project():
 
     if request.method == "POST":
 
-        project_name = request.form.get("project_name", "").strip()
-        product_name = request.form.get("product_name", "").strip()
-        customer = request.form.get("customer", "").strip()
-        project_number = request.form.get("project_number", "").strip()
-        created_date = request.form.get("created_date", "").strip()
+        project_name = request.form.get(
+            "project_name", ""
+        ).strip()
+
+        product_name = request.form.get(
+            "product_name", ""
+        ).strip()
+
+        customer = request.form.get(
+            "customer", ""
+        ).strip()
+
+        oem_name = request.form.get(
+            "oem_name", "Generic"
+        ).strip()
+
+        compliance_mode = request.form.get(
+            "compliance_mode",
+            "AIAG-VDA 2019"
+        ).strip()
+
+        project_number = request.form.get(
+            "project_number", ""
+        ).strip()
+
+        created_date = request.form.get(
+            "created_date", ""
+        ).strip()
+
+        if not created_date:
+            created_date = date.today().isoformat()
 
         if project_name:
 
@@ -214,14 +415,18 @@ def project():
                     project_name,
                     product_name,
                     customer,
+                    oem_name,
+                    compliance_mode,
                     project_number,
                     created_date
                 )
-                VALUES (?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (
                 project_name,
                 product_name,
                 customer,
+                oem_name,
+                compliance_mode,
                 project_number,
                 created_date
             ))
@@ -243,7 +448,8 @@ def project():
 
     return render_template(
         "project.html",
-        projects=projects
+        projects=projects,
+        today=date.today().isoformat()
     )
 
 
@@ -320,6 +526,7 @@ def boundary_diagram():
     if request.method == "POST":
 
         project_id = request.form.get("project_id", "")
+
         external_element = request.form.get(
             "external_element", ""
         ).strip()
@@ -405,43 +612,35 @@ def product_structure():
     if request.method == "POST":
 
         project_id = request.form.get(
-            "project_id",
-            ""
+            "project_id", ""
         )
 
         parent_id = request.form.get(
-            "parent_id",
-            ""
+            "parent_id", ""
         )
 
         component_name = request.form.get(
-            "component_name",
-            ""
+            "component_name", ""
         ).strip()
 
         component_type = request.form.get(
-            "component_type",
-            ""
+            "component_type", ""
         ).strip()
 
         label = request.form.get(
-            "label",
-            ""
+            "label", ""
         ).strip()
 
         part_number = request.form.get(
-            "part_number",
-            ""
+            "part_number", ""
         ).strip()
 
         level = request.form.get(
-            "level",
-            "0"
+            "level", "0"
         ).strip()
 
         description = request.form.get(
-            "description",
-            ""
+            "description", ""
         ).strip()
 
         if parent_id == "":
@@ -474,6 +673,7 @@ def product_structure():
             ))
 
             conn.commit()
+
             conn.close()
 
             return redirect(
@@ -495,16 +695,7 @@ def product_structure():
     if selected_project_id:
 
         components = conn.execute("""
-            SELECT
-                id,
-                project_id,
-                parent_id,
-                component_name,
-                component_type,
-                label,
-                part_number,
-                level,
-                description
+            SELECT *
             FROM product_structure
             WHERE project_id = ?
             ORDER BY level, id
@@ -543,38 +734,31 @@ def key_characteristics():
     if request.method == "POST":
 
         project_id = request.form.get(
-            "project_id",
-            ""
+            "project_id", ""
         )
 
         component_id = request.form.get(
-            "component_id",
-            ""
+            "component_id", ""
         )
 
         characteristic = request.form.get(
-            "characteristic",
-            ""
+            "characteristic", ""
         ).strip()
 
         specification = request.form.get(
-            "specification",
-            ""
+            "specification", ""
         ).strip()
 
         tolerance = request.form.get(
-            "tolerance",
-            ""
+            "tolerance", ""
         ).strip()
 
         severity = request.form.get(
-            "severity",
-            "1"
+            "severity", "1"
         )
 
         responsibility = request.form.get(
-            "responsibility",
-            ""
+            "responsibility", ""
         ).strip()
 
         if project_id and component_id and characteristic:
@@ -655,13 +839,10 @@ def key_characteristics():
             kc.severity,
             kc.responsibility
         FROM key_characteristics AS kc
-
         LEFT JOIN projects AS p
             ON kc.project_id = p.id
-
         LEFT JOIN product_structure AS ps
             ON kc.component_id = ps.id
-
         ORDER BY kc.id DESC
     """).fetchall()
 
@@ -693,23 +874,19 @@ def functional_links():
     if request.method == "POST":
 
         project_id = request.form.get(
-            "project_id",
-            ""
+            "project_id", ""
         )
 
         function_id = request.form.get(
-            "function_id",
-            ""
+            "function_id", ""
         )
 
         component_id = request.form.get(
-            "component_id",
-            ""
+            "component_id", ""
         )
 
         requirement = request.form.get(
-            "requirement",
-            ""
+            "requirement", ""
         ).strip()
 
         if project_id and function_id and component_id and requirement:
@@ -752,11 +929,7 @@ def functional_links():
     if selected_project_id:
 
         functions = conn.execute("""
-            SELECT
-                id,
-                project_id,
-                function,
-                requirement
+            SELECT *
             FROM functional_analysis
             WHERE project_id = ?
             ORDER BY id ASC
@@ -765,14 +938,7 @@ def functional_links():
         )).fetchall()
 
         components = conn.execute("""
-            SELECT
-                id,
-                project_id,
-                component_name,
-                component_type,
-                label,
-                part_number,
-                level
+            SELECT *
             FROM product_structure
             WHERE project_id = ?
             ORDER BY level ASC, id ASC
@@ -795,16 +961,12 @@ def functional_links():
             fa.requirement AS function_requirement,
             ps.component_name
         FROM functional_links AS fl
-
         LEFT JOIN projects AS p
             ON fl.project_id = p.id
-
         LEFT JOIN functional_analysis AS fa
             ON fl.function_id = fa.id
-
         LEFT JOIN product_structure AS ps
             ON fl.component_id = ps.id
-
         ORDER BY fl.id DESC
     """).fetchall()
 
@@ -837,87 +999,83 @@ def dfmea():
     if request.method == "POST":
 
         project_id = request.form.get(
-            "project_id",
-            ""
+            "project_id", ""
         )
 
         component_id = request.form.get(
-            "component_id",
-            ""
+            "component_id", ""
         )
 
         function = request.form.get(
-            "function",
-            ""
+            "function", ""
         ).strip()
 
         failure_mode = request.form.get(
-            "failure_mode",
-            ""
+            "failure_mode", ""
         ).strip()
 
         failure_effect = request.form.get(
-            "failure_effect",
-            ""
+            "failure_effect", ""
         ).strip()
 
         severity = request.form.get(
-            "severity",
-            "1"
+            "severity", "1"
         )
 
         cause = request.form.get(
-            "cause",
-            ""
+            "cause", ""
         ).strip()
 
         occurrence = request.form.get(
-            "occurrence",
-            "1"
+            "occurrence", "1"
         )
 
         prevention_control = request.form.get(
-            "prevention_control",
-            ""
+            "prevention_control", ""
         ).strip()
 
         detection_control = request.form.get(
-            "detection_control",
-            ""
+            "detection_control", ""
         ).strip()
 
         detection = request.form.get(
-            "detection",
-            "1"
+            "detection", "1"
         )
 
         recommended_action = request.form.get(
-            "recommended_action",
-            ""
+            "recommended_action", ""
         ).strip()
 
         responsibility = request.form.get(
-            "responsibility",
-            ""
+            "responsibility", ""
         ).strip()
 
         target_date = request.form.get(
-            "target_date",
-            ""
+            "target_date", ""
         ).strip()
 
         action_status = request.form.get(
-            "action_status",
-            ""
+            "action_status", "Open"
         ).strip()
 
         try:
+
             s = int(severity)
             o = int(occurrence)
             d = int(detection)
+
+            s = max(1, min(10, s))
+            o = max(1, min(10, o))
+            d = max(1, min(10, d))
+
             rpn = s * o * d
+
         except ValueError:
-            rpn = 0
+
+            s = 1
+            o = 1
+            d = 1
+            rpn = 1
 
         if project_id and failure_mode:
 
@@ -944,16 +1102,16 @@ def dfmea():
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 project_id,
-                component_id,
+                component_id or None,
                 function,
                 failure_mode,
                 failure_effect,
-                severity,
+                s,
                 cause,
-                occurrence,
+                o,
                 prevention_control,
                 detection_control,
-                detection,
+                d,
                 rpn,
                 recommended_action,
                 responsibility,
@@ -1007,13 +1165,10 @@ def dfmea():
             p.project_name,
             ps.component_name
         FROM dfmea AS d
-
         LEFT JOIN projects AS p
             ON d.project_id = p.id
-
         LEFT JOIN product_structure AS ps
             ON d.component_id = ps.id
-
         ORDER BY d.id DESC
     """).fetchall()
 
@@ -1045,92 +1200,83 @@ def pfmea():
     if request.method == "POST":
 
         project_id = request.form.get(
-            "project_id",
-            ""
+            "project_id", ""
         )
 
         component_id = request.form.get(
-            "component_id",
-            ""
+            "component_id", ""
         )
 
         process_step = request.form.get(
-            "process_step",
-            ""
+            "process_step", ""
         ).strip()
 
         process_function = request.form.get(
-            "process_function",
-            ""
+            "process_function", ""
         ).strip()
 
         failure_mode = request.form.get(
-            "failure_mode",
-            ""
+            "failure_mode", ""
         ).strip()
 
         failure_effect = request.form.get(
-            "failure_effect",
-            ""
+            "failure_effect", ""
         ).strip()
 
         severity = request.form.get(
-            "severity",
-            "1"
+            "severity", "1"
         )
 
         cause = request.form.get(
-            "cause",
-            ""
+            "cause", ""
         ).strip()
 
         occurrence = request.form.get(
-            "occurrence",
-            "1"
+            "occurrence", "1"
         )
 
         prevention_control = request.form.get(
-            "prevention_control",
-            ""
+            "prevention_control", ""
         ).strip()
 
         detection_control = request.form.get(
-            "detection_control",
-            ""
+            "detection_control", ""
         ).strip()
 
         detection = request.form.get(
-            "detection",
-            "1"
+            "detection", "1"
         )
 
         recommended_action = request.form.get(
-            "recommended_action",
-            ""
+            "recommended_action", ""
         ).strip()
 
         responsibility = request.form.get(
-            "responsibility",
-            ""
+            "responsibility", ""
         ).strip()
 
         target_date = request.form.get(
-            "target_date",
-            ""
+            "target_date", ""
         ).strip()
 
         action_status = request.form.get(
-            "action_status",
-            ""
+            "action_status", "Open"
         ).strip()
 
         try:
-            s = int(severity)
-            o = int(occurrence)
-            d = int(detection)
+
+            s = max(1, min(10, int(severity)))
+            o = max(1, min(10, int(occurrence)))
+            d = max(1, min(10, int(detection)))
+
             rpn = s * o * d
+
         except ValueError:
-            rpn = 0
+
+            s = 1
+            o = 1
+            d = 1
+            rpn = 1
 
         if project_id and failure_mode:
 
@@ -1158,17 +1304,17 @@ def pfmea():
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 project_id,
-                component_id,
+                component_id or None,
                 process_step,
                 process_function,
                 failure_mode,
                 failure_effect,
-                severity,
+                s,
                 cause,
-                occurrence,
+                o,
                 prevention_control,
                 detection_control,
-                detection,
+                d,
                 rpn,
                 recommended_action,
                 responsibility,
@@ -1222,13 +1368,10 @@ def pfmea():
             pr.project_name,
             ps.component_name
         FROM pfmea AS p
-
         LEFT JOIN projects AS pr
             ON p.project_id = pr.id
-
         LEFT JOIN product_structure AS ps
             ON p.component_id = ps.id
-
         ORDER BY p.id DESC
     """).fetchall()
 
@@ -1260,58 +1403,47 @@ def control_plan():
     if request.method == "POST":
 
         project_id = request.form.get(
-            "project_id",
-            ""
+            "project_id", ""
         )
 
         component_id = request.form.get(
-            "component_id",
-            ""
+            "component_id", ""
         )
 
         process_step = request.form.get(
-            "process_step",
-            ""
+            "process_step", ""
         ).strip()
 
         characteristic = request.form.get(
-            "characteristic",
-            ""
+            "characteristic", ""
         ).strip()
 
         specification = request.form.get(
-            "specification",
-            ""
+            "specification", ""
         ).strip()
 
         control_method = request.form.get(
-            "control_method",
-            ""
+            "control_method", ""
         ).strip()
 
         measurement_method = request.form.get(
-            "measurement_method",
-            ""
+            "measurement_method", ""
         ).strip()
 
         sample_size = request.form.get(
-            "sample_size",
-            ""
+            "sample_size", ""
         ).strip()
 
         frequency = request.form.get(
-            "frequency",
-            ""
+            "frequency", ""
         ).strip()
 
         responsibility = request.form.get(
-            "responsibility",
-            ""
+            "responsibility", ""
         ).strip()
 
         reaction_plan = request.form.get(
-            "reaction_plan",
-            ""
+            "reaction_plan", ""
         ).strip()
 
         if project_id and characteristic:
@@ -1334,7 +1466,7 @@ def control_plan():
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 project_id,
-                component_id,
+                component_id or None,
                 process_step,
                 characteristic,
                 specification,
@@ -1392,13 +1524,10 @@ def control_plan():
             p.project_name,
             ps.component_name
         FROM control_plan AS cp
-
         LEFT JOIN projects AS p
             ON cp.project_id = p.id
-
         LEFT JOIN product_structure AS ps
             ON cp.component_id = ps.id
-
         ORDER BY cp.id DESC
     """).fetchall()
 
@@ -1428,10 +1557,7 @@ def reports():
     )
 
     projects = conn.execute("""
-        SELECT
-            id,
-            project_name,
-            product_name
+        SELECT *
         FROM projects
         ORDER BY id DESC
     """).fetchall()
@@ -1505,12 +1631,9 @@ def reports():
                 d.*,
                 ps.component_name
             FROM dfmea AS d
-
             LEFT JOIN product_structure AS ps
                 ON d.component_id = ps.id
-
             WHERE d.project_id = ?
-
             ORDER BY d.id DESC
         """, (
             selected_project_id,
@@ -1521,12 +1644,9 @@ def reports():
                 p.*,
                 ps.component_name
             FROM pfmea AS p
-
             LEFT JOIN product_structure AS ps
                 ON p.component_id = ps.id
-
             WHERE p.project_id = ?
-
             ORDER BY p.id DESC
         """, (
             selected_project_id,
@@ -1545,8 +1665,9 @@ def reports():
         selected_project_id=selected_project_id
     )
 
+
 # =========================================================
-# EXPORT REPORT TO EXCEL
+# EXPORT EXCEL
 # =========================================================
 
 @app.route("/export-excel")
@@ -1563,30 +1684,63 @@ def export_excel():
         SELECT *
         FROM projects
         WHERE id = ?
-    """, (project_id,)).fetchone()
+    """, (
+        project_id,
+    )).fetchone()
 
     if not project:
+
         conn.close()
+
         return "Project not found."
 
     workbook = Workbook()
 
-    # -----------------------------------------------------
-    # PROJECT SHEET
-    # -----------------------------------------------------
+    # =====================================================
+    # PROJECT
+    # =====================================================
 
     sheet = workbook.active
     sheet.title = "Project"
 
-    sheet.append(["Project Name", project["project_name"]])
-    sheet.append(["Product Name", project["product_name"]])
-    sheet.append(["Customer", project["customer"]])
-    sheet.append(["Project Number", project["project_number"]])
-    sheet.append(["Created Date", project["created_date"]])
+    sheet.append([
+        "Project Name",
+        project["project_name"]
+    ])
 
-    # -----------------------------------------------------
+    sheet.append([
+        "Product Name",
+        project["product_name"]
+    ])
+
+    sheet.append([
+        "Customer",
+        project["customer"]
+    ])
+
+    sheet.append([
+        "OEM / Customer Standard",
+        project["oem_name"]
+    ])
+
+    sheet.append([
+        "Compliance Mode",
+        project["compliance_mode"]
+    ])
+
+    sheet.append([
+        "Project Number",
+        project["project_number"]
+    ])
+
+    sheet.append([
+        "Created Date",
+        project["created_date"]
+    ])
+
+    # =====================================================
     # PRODUCT STRUCTURE
-    # -----------------------------------------------------
+    # =====================================================
 
     sheet = workbook.create_sheet("Product Structure")
 
@@ -1610,9 +1764,12 @@ def export_excel():
         FROM product_structure
         WHERE project_id = ?
         ORDER BY level, id
-    """, (project_id,)).fetchall()
+    """, (
+        project_id,
+    )).fetchall()
 
     for row in rows:
+
         sheet.append([
             row["level"],
             row["component_name"],
@@ -1622,9 +1779,9 @@ def export_excel():
             row["description"]
         ])
 
-    # -----------------------------------------------------
+    # =====================================================
     # FUNCTIONAL ANALYSIS
-    # -----------------------------------------------------
+    # =====================================================
 
     sheet = workbook.create_sheet("Functional Analysis")
 
@@ -1640,17 +1797,55 @@ def export_excel():
         FROM functional_analysis
         WHERE project_id = ?
         ORDER BY id
-    """, (project_id,)).fetchall()
+    """, (
+        project_id,
+    )).fetchall()
 
     for row in rows:
+
         sheet.append([
             row["function"],
             row["requirement"]
         ])
 
-    # -----------------------------------------------------
+    # =====================================================
+    # BOUNDARY DIAGRAM
+    # =====================================================
+
+    sheet = workbook.create_sheet("Boundary Diagram")
+
+    sheet.append([
+        "External Element",
+        "Interaction",
+        "Direction",
+        "Description"
+    ])
+
+    rows = conn.execute("""
+        SELECT
+            external_element,
+            interaction,
+            direction,
+            description
+        FROM boundary_diagram
+        WHERE project_id = ?
+        ORDER BY id
+    """, (
+        project_id,
+    )).fetchall()
+
+    for row in rows:
+
+        sheet.append([
+            row["external_element"],
+            row["interaction"],
+            row["direction"],
+            row["description"]
+        ])
+
+    # =====================================================
     # KEY CHARACTERISTICS
-    # -----------------------------------------------------
+    # =====================================================
 
     sheet = workbook.create_sheet("Key Characteristics")
 
@@ -1676,9 +1871,12 @@ def export_excel():
             ON kc.component_id = ps.id
         WHERE kc.project_id = ?
         ORDER BY kc.id
-    """, (project_id,)).fetchall()
+    """, (
+        project_id,
+    )).fetchall()
 
     for row in rows:
+
         sheet.append([
             row["component_name"],
             row["characteristic"],
@@ -1688,9 +1886,9 @@ def export_excel():
             row["responsibility"]
         ])
 
-    # -----------------------------------------------------
+    # =====================================================
     # FUNCTIONAL LINKS
-    # -----------------------------------------------------
+    # =====================================================
 
     sheet = workbook.create_sheet("Functional Links")
 
@@ -1703,34 +1901,33 @@ def export_excel():
 
     rows = conn.execute("""
         SELECT
-            fa.function,
-            fa.requirement,
+            fa.function AS function_name,
+            fa.requirement AS function_requirement,
             ps.component_name,
-            fl.requirement
+            fl.requirement AS linked_requirement
         FROM functional_links AS fl
-
         LEFT JOIN functional_analysis AS fa
             ON fl.function_id = fa.id
-
         LEFT JOIN product_structure AS ps
             ON fl.component_id = ps.id
-
         WHERE fl.project_id = ?
-
         ORDER BY fl.id
-    """, (project_id,)).fetchall()
+    """, (
+        project_id,
+    )).fetchall()
 
     for row in rows:
+
         sheet.append([
-            row["function"],
-            row["requirement"],
+            row["function_name"],
+            row["function_requirement"],
             row["component_name"],
-            row["requirement"]
+            row["linked_requirement"]
         ])
 
-    # -----------------------------------------------------
+    # =====================================================
     # DFMEA
-    # -----------------------------------------------------
+    # =====================================================
 
     sheet = workbook.create_sheet("DFMEA")
 
@@ -1770,16 +1967,16 @@ def export_excel():
             d.target_date,
             d.action_status
         FROM dfmea AS d
-
         LEFT JOIN product_structure AS ps
             ON d.component_id = ps.id
-
         WHERE d.project_id = ?
-
         ORDER BY d.id
-    """, (project_id,)).fetchall()
+    """, (
+        project_id,
+    )).fetchall()
 
     for row in rows:
+
         sheet.append([
             row["component_name"],
             row["function"],
@@ -1798,9 +1995,9 @@ def export_excel():
             row["action_status"]
         ])
 
-    # -----------------------------------------------------
+    # =====================================================
     # PFMEA
-    # -----------------------------------------------------
+    # =====================================================
 
     sheet = workbook.create_sheet("PFMEA")
 
@@ -1842,16 +2039,16 @@ def export_excel():
             p.target_date,
             p.action_status
         FROM pfmea AS p
-
         LEFT JOIN product_structure AS ps
             ON p.component_id = ps.id
-
         WHERE p.project_id = ?
-
         ORDER BY p.id
-    """, (project_id,)).fetchall()
+    """, (
+        project_id,
+    )).fetchall()
 
     for row in rows:
+
         sheet.append([
             row["component_name"],
             row["process_step"],
@@ -1871,9 +2068,9 @@ def export_excel():
             row["action_status"]
         ])
 
-    # -----------------------------------------------------
+    # =====================================================
     # CONTROL PLAN
-    # -----------------------------------------------------
+    # =====================================================
 
     sheet = workbook.create_sheet("Control Plan")
 
@@ -1903,16 +2100,16 @@ def export_excel():
             cp.responsibility,
             cp.reaction_plan
         FROM control_plan AS cp
-
         LEFT JOIN product_structure AS ps
             ON cp.component_id = ps.id
-
         WHERE cp.project_id = ?
-
         ORDER BY cp.id
-    """, (project_id,)).fetchall()
+    """, (
+        project_id,
+    )).fetchall()
 
     for row in rows:
+
         sheet.append([
             row["component_name"],
             row["process_step"],
@@ -1928,15 +2125,24 @@ def export_excel():
 
     conn.close()
 
-    # -----------------------------------------------------
-    # COLUMN WIDTH
-    # -----------------------------------------------------
+    # =====================================================
+    # FORMAT EXCEL
+    # =====================================================
 
     for sheet in workbook.worksheets:
+
+        sheet.freeze_panes = "A2"
+
+        for cell in sheet[1]:
+
+            cell.font = cell.font.copy(
+                bold=True
+            )
 
         for column in sheet.columns:
 
             max_length = 0
+
             column_letter = column[0].column_letter
 
             for cell in column:
@@ -1950,11 +2156,14 @@ def export_excel():
 
             sheet.column_dimensions[
                 column_letter
-            ].width = min(max_length + 2, 40)
+            ].width = min(
+                max_length + 2,
+                40
+            )
 
-    # -----------------------------------------------------
-    # SEND FILE
-    # -----------------------------------------------------
+    # =====================================================
+    # SEND EXCEL FILE
+    # =====================================================
 
     output = BytesIO()
 
@@ -1966,7 +2175,10 @@ def export_excel():
         output,
         as_attachment=True,
         download_name="Automotive_FMEA_Report.xlsx",
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        mimetype=(
+            "application/vnd.openxmlformats-officedocument."
+            "spreadsheetml.sheet"
+        )
     )
 
 
@@ -1980,9 +2192,9 @@ if __name__ == "__main__":
 
     print("")
     print("==============================================")
-    print("   AUTOMOTIVE FMEA MANAGEMENT SYSTEM")
+    print("      AUTOMOTIVE FMEA MANAGEMENT SYSTEM")
     print("==============================================")
-    print("   Server: http://127.0.0.1:5000")
+    print("      Server: http://127.0.0.1:5000")
     print("==============================================")
     print("")
 
