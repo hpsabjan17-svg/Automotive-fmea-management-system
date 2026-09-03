@@ -1,11 +1,28 @@
-from flask import Flask, render_template, request, redirect, url_for, send_file
+from flask import Flask, render_template, request, redirect, url_for, send_file, session
 from openpyxl import Workbook
 from io import BytesIO
 from datetime import date
+from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 import os
 
+
 app = Flask(__name__)
+
+# =========================================================
+# SECURITY / SESSION SETTINGS
+# =========================================================
+
+app.secret_key = os.environ.get(
+    "SECRET_KEY",
+    "development-secret-key-change-in-render"
+)
+
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = (
+    os.environ.get("COOKIE_SECURE", "false").lower() == "true"
+)
 
 DATABASE = os.path.join("database", "fmea.db")
 
@@ -55,6 +72,49 @@ def setup_database():
     cursor = conn.cursor()
 
     # =====================================================
+    # USERS
+    # =====================================================
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            created_date TEXT NOT NULL
+        )
+    """)
+
+    # =====================================================
+    # CREATE FIRST ADMIN USER
+    # =====================================================
+
+    admin_username = os.environ.get("ADMIN_USERNAME")
+    admin_password = os.environ.get("ADMIN_PASSWORD")
+
+    if admin_username and admin_password:
+
+        existing_user = cursor.execute(
+            "SELECT id FROM users WHERE username = ?",
+            (admin_username,)
+        ).fetchone()
+
+        if existing_user is None:
+
+            cursor.execute("""
+                INSERT INTO users
+                (
+                    username,
+                    password_hash,
+                    created_date
+                )
+                VALUES (?, ?, ?)
+            """, (
+                admin_username,
+                generate_password_hash(admin_password),
+                date.today().isoformat()
+            ))
+
+    # =====================================================
     # PROJECTS
     # =====================================================
 
@@ -68,8 +128,6 @@ def setup_database():
             created_date TEXT
         )
     """)
-
-    # Add newer project fields without deleting old data
 
     add_column_if_missing(
         cursor,
@@ -102,7 +160,6 @@ def setup_database():
     """)
 
     oem_data = [
-
         (
             "Volkswagen Group",
             "AIAG-VDA",
@@ -111,7 +168,6 @@ def setup_database():
             15,
             "OEM CSR prototype configuration for Volkswagen Group."
         ),
-
         (
             "BMW Group",
             "AIAG-VDA",
@@ -120,7 +176,6 @@ def setup_database():
             12,
             "OEM CSR prototype configuration for BMW Group."
         ),
-
         (
             "Ford Motor Co",
             "AIAG-VDA",
@@ -129,7 +184,6 @@ def setup_database():
             10,
             "OEM CSR prototype configuration for Ford Motor Co."
         ),
-
         (
             "General Motors",
             "AIAG-VDA",
@@ -138,7 +192,6 @@ def setup_database():
             10,
             "OEM CSR prototype configuration for General Motors."
         ),
-
         (
             "Stellantis",
             "AIAG-VDA",
@@ -147,7 +200,6 @@ def setup_database():
             10,
             "OEM CSR prototype configuration for Stellantis."
         ),
-
         (
             "Generic",
             "AIAG-VDA 2019",
@@ -342,6 +394,97 @@ def setup_database():
 
 
 # =========================================================
+# LOGIN PROTECTION
+# =========================================================
+
+@app.before_request
+def require_login():
+
+    allowed_endpoints = {
+        "login",
+        "static"
+    }
+
+    if request.endpoint in allowed_endpoints:
+        return
+
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+
+# =========================================================
+# LOGIN
+# =========================================================
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+
+    if session.get("user_id"):
+        return redirect(url_for("dashboard"))
+
+    error = None
+
+    if request.method == "POST":
+
+        username = request.form.get(
+            "username",
+            ""
+        ).strip()
+
+        password = request.form.get(
+            "password",
+            ""
+        )
+
+        conn = get_db()
+
+        user = conn.execute("""
+            SELECT *
+            FROM users
+            WHERE username = ?
+        """, (
+            username,
+        )).fetchone()
+
+        conn.close()
+
+        if user and check_password_hash(
+            user["password_hash"],
+            password
+        ):
+
+            session.clear()
+
+            session["user_id"] = user["id"]
+            session["username"] = user["username"]
+
+            return redirect(
+                url_for("dashboard")
+            )
+
+        error = "Invalid username or password."
+
+    return render_template(
+        "login.html",
+        error=error
+    )
+
+
+# =========================================================
+# LOGOUT
+# =========================================================
+
+@app.route("/logout")
+def logout():
+
+    session.clear()
+
+    return redirect(
+        url_for("login")
+    )
+
+
+# =========================================================
 # DASHBOARD
 # =========================================================
 
@@ -374,19 +517,23 @@ def project():
     if request.method == "POST":
 
         project_name = request.form.get(
-            "project_name", ""
+            "project_name",
+            ""
         ).strip()
 
         product_name = request.form.get(
-            "product_name", ""
+            "product_name",
+            ""
         ).strip()
 
         customer = request.form.get(
-            "customer", ""
+            "customer",
+            ""
         ).strip()
 
         oem_name = request.form.get(
-            "oem_name", "Generic"
+            "oem_name",
+            "Generic"
         ).strip()
 
         compliance_mode = request.form.get(
@@ -395,11 +542,13 @@ def project():
         ).strip()
 
         project_number = request.form.get(
-            "project_number", ""
+            "project_number",
+            ""
         ).strip()
 
         created_date = request.form.get(
-            "created_date", ""
+            "created_date",
+            ""
         ).strip()
 
         if not created_date:
@@ -464,9 +613,20 @@ def functional_analysis():
 
     if request.method == "POST":
 
-        project_id = request.form.get("project_id", "")
-        function = request.form.get("function", "").strip()
-        requirement = request.form.get("requirement", "").strip()
+        project_id = request.form.get(
+            "project_id",
+            ""
+        )
+
+        function = request.form.get(
+            "function",
+            ""
+        ).strip()
+
+        requirement = request.form.get(
+            "requirement",
+            ""
+        ).strip()
 
         if project_id and function:
 
@@ -525,22 +685,29 @@ def boundary_diagram():
 
     if request.method == "POST":
 
-        project_id = request.form.get("project_id", "")
+        project_id = request.form.get(
+            "project_id",
+            ""
+        )
 
         external_element = request.form.get(
-            "external_element", ""
+            "external_element",
+            ""
         ).strip()
 
         interaction = request.form.get(
-            "interaction", ""
+            "interaction",
+            ""
         ).strip()
 
         direction = request.form.get(
-            "direction", ""
+            "direction",
+            ""
         ).strip()
 
         description = request.form.get(
-            "description", ""
+            "description",
+            ""
         ).strip()
 
         if project_id and external_element:
@@ -612,35 +779,43 @@ def product_structure():
     if request.method == "POST":
 
         project_id = request.form.get(
-            "project_id", ""
+            "project_id",
+            ""
         )
 
         parent_id = request.form.get(
-            "parent_id", ""
+            "parent_id",
+            ""
         )
 
         component_name = request.form.get(
-            "component_name", ""
+            "component_name",
+            ""
         ).strip()
 
         component_type = request.form.get(
-            "component_type", ""
+            "component_type",
+            ""
         ).strip()
 
         label = request.form.get(
-            "label", ""
+            "label",
+            ""
         ).strip()
 
         part_number = request.form.get(
-            "part_number", ""
+            "part_number",
+            ""
         ).strip()
 
         level = request.form.get(
-            "level", "0"
+            "level",
+            "0"
         ).strip()
 
         description = request.form.get(
-            "description", ""
+            "description",
+            ""
         ).strip()
 
         if parent_id == "":
@@ -673,7 +848,6 @@ def product_structure():
             ))
 
             conn.commit()
-
             conn.close()
 
             return redirect(
@@ -734,31 +908,38 @@ def key_characteristics():
     if request.method == "POST":
 
         project_id = request.form.get(
-            "project_id", ""
+            "project_id",
+            ""
         )
 
         component_id = request.form.get(
-            "component_id", ""
+            "component_id",
+            ""
         )
 
         characteristic = request.form.get(
-            "characteristic", ""
+            "characteristic",
+            ""
         ).strip()
 
         specification = request.form.get(
-            "specification", ""
+            "specification",
+            ""
         ).strip()
 
         tolerance = request.form.get(
-            "tolerance", ""
+            "tolerance",
+            ""
         ).strip()
 
         severity = request.form.get(
-            "severity", "1"
+            "severity",
+            "1"
         )
 
         responsibility = request.form.get(
-            "responsibility", ""
+            "responsibility",
+            ""
         ).strip()
 
         if project_id and component_id and characteristic:
@@ -874,19 +1055,23 @@ def functional_links():
     if request.method == "POST":
 
         project_id = request.form.get(
-            "project_id", ""
+            "project_id",
+            ""
         )
 
         function_id = request.form.get(
-            "function_id", ""
+            "function_id",
+            ""
         )
 
         component_id = request.form.get(
-            "component_id", ""
+            "component_id",
+            ""
         )
 
         requirement = request.form.get(
-            "requirement", ""
+            "requirement",
+            ""
         ).strip()
 
         if project_id and function_id and component_id and requirement:
@@ -999,74 +1184,85 @@ def dfmea():
     if request.method == "POST":
 
         project_id = request.form.get(
-            "project_id", ""
+            "project_id",
+            ""
         )
 
         component_id = request.form.get(
-            "component_id", ""
+            "component_id",
+            ""
         )
 
         function = request.form.get(
-            "function", ""
+            "function",
+            ""
         ).strip()
 
         failure_mode = request.form.get(
-            "failure_mode", ""
+            "failure_mode",
+            ""
         ).strip()
 
         failure_effect = request.form.get(
-            "failure_effect", ""
+            "failure_effect",
+            ""
         ).strip()
 
         severity = request.form.get(
-            "severity", "1"
+            "severity",
+            "1"
         )
 
         cause = request.form.get(
-            "cause", ""
+            "cause",
+            ""
         ).strip()
 
         occurrence = request.form.get(
-            "occurrence", "1"
+            "occurrence",
+            "1"
         )
 
         prevention_control = request.form.get(
-            "prevention_control", ""
+            "prevention_control",
+            ""
         ).strip()
 
         detection_control = request.form.get(
-            "detection_control", ""
+            "detection_control",
+            ""
         ).strip()
 
         detection = request.form.get(
-            "detection", "1"
+            "detection",
+            "1"
         )
 
         recommended_action = request.form.get(
-            "recommended_action", ""
+            "recommended_action",
+            ""
         ).strip()
 
         responsibility = request.form.get(
-            "responsibility", ""
+            "responsibility",
+            ""
         ).strip()
 
         target_date = request.form.get(
-            "target_date", ""
+            "target_date",
+            ""
         ).strip()
 
         action_status = request.form.get(
-            "action_status", "Open"
+            "action_status",
+            "Open"
         ).strip()
 
         try:
 
-            s = int(severity)
-            o = int(occurrence)
-            d = int(detection)
-
-            s = max(1, min(10, s))
-            o = max(1, min(10, o))
-            d = max(1, min(10, d))
+            s = max(1, min(10, int(severity)))
+            o = max(1, min(10, int(occurrence)))
+            d = max(1, min(10, int(detection)))
 
             rpn = s * o * d
 
@@ -1120,7 +1316,6 @@ def dfmea():
             ))
 
             conn.commit()
-
             conn.close()
 
             return redirect(
@@ -1200,67 +1395,83 @@ def pfmea():
     if request.method == "POST":
 
         project_id = request.form.get(
-            "project_id", ""
+            "project_id",
+            ""
         )
 
         component_id = request.form.get(
-            "component_id", ""
+            "component_id",
+            ""
         )
 
         process_step = request.form.get(
-            "process_step", ""
+            "process_step",
+            ""
         ).strip()
 
         process_function = request.form.get(
-            "process_function", ""
+            "process_function",
+            ""
         ).strip()
 
         failure_mode = request.form.get(
-            "failure_mode", ""
+            "failure_mode",
+            ""
         ).strip()
 
         failure_effect = request.form.get(
-            "failure_effect", ""
+            "failure_effect",
+            ""
         ).strip()
 
         severity = request.form.get(
-            "severity", "1"
+            "severity",
+            "1"
         )
 
         cause = request.form.get(
-            "cause", ""
+            "cause",
+            ""
         ).strip()
 
         occurrence = request.form.get(
-            "occurrence", "1"
+            "occurrence",
+            "1"
         )
 
         prevention_control = request.form.get(
-            "prevention_control", ""
+            "prevention_control",
+            ""
         ).strip()
 
         detection_control = request.form.get(
-            "detection_control", ""
+            "detection_control",
+            ""
         ).strip()
 
         detection = request.form.get(
-            "detection", "1"
+            "detection",
+            "1"
         )
 
         recommended_action = request.form.get(
-            "recommended_action", ""
+            "recommended_action",
+            ""
         ).strip()
 
         responsibility = request.form.get(
-            "responsibility", ""
+            "responsibility",
+            ""
         ).strip()
 
         target_date = request.form.get(
-            "target_date", ""
+            "target_date",
+            ""
         ).strip()
 
         action_status = request.form.get(
-            "action_status", "Open"
+            "action_status",
+            "Open"
         ).strip()
 
         try:
@@ -1323,7 +1534,6 @@ def pfmea():
             ))
 
             conn.commit()
-
             conn.close()
 
             return redirect(
@@ -1403,47 +1613,58 @@ def control_plan():
     if request.method == "POST":
 
         project_id = request.form.get(
-            "project_id", ""
+            "project_id",
+            ""
         )
 
         component_id = request.form.get(
-            "component_id", ""
+            "component_id",
+            ""
         )
 
         process_step = request.form.get(
-            "process_step", ""
+            "process_step",
+            ""
         ).strip()
 
         characteristic = request.form.get(
-            "characteristic", ""
+            "characteristic",
+            ""
         ).strip()
 
         specification = request.form.get(
-            "specification", ""
+            "specification",
+            ""
         ).strip()
 
         control_method = request.form.get(
-            "control_method", ""
+            "control_method",
+            ""
         ).strip()
 
         measurement_method = request.form.get(
-            "measurement_method", ""
+            "measurement_method",
+            ""
         ).strip()
 
         sample_size = request.form.get(
-            "sample_size", ""
+            "sample_size",
+            ""
         ).strip()
 
         frequency = request.form.get(
-            "frequency", ""
+            "frequency",
+            ""
         ).strip()
 
         responsibility = request.form.get(
-            "responsibility", ""
+            "responsibility",
+            ""
         ).strip()
 
         reaction_plan = request.form.get(
-            "reaction_plan", ""
+            "reaction_plan",
+            ""
         ).strip()
 
         if project_id and characteristic:
@@ -1479,7 +1700,6 @@ def control_plan():
             ))
 
             conn.commit()
-
             conn.close()
 
             return redirect(
@@ -1673,7 +1893,9 @@ def reports():
 @app.route("/export-excel")
 def export_excel():
 
-    project_id = request.args.get("project_id")
+    project_id = request.args.get(
+        "project_id"
+    )
 
     if not project_id:
         return "Please select a project first."
@@ -1742,7 +1964,9 @@ def export_excel():
     # PRODUCT STRUCTURE
     # =====================================================
 
-    sheet = workbook.create_sheet("Product Structure")
+    sheet = workbook.create_sheet(
+        "Product Structure"
+    )
 
     sheet.append([
         "Level",
@@ -1783,7 +2007,9 @@ def export_excel():
     # FUNCTIONAL ANALYSIS
     # =====================================================
 
-    sheet = workbook.create_sheet("Functional Analysis")
+    sheet = workbook.create_sheet(
+        "Functional Analysis"
+    )
 
     sheet.append([
         "Function",
@@ -1812,7 +2038,9 @@ def export_excel():
     # BOUNDARY DIAGRAM
     # =====================================================
 
-    sheet = workbook.create_sheet("Boundary Diagram")
+    sheet = workbook.create_sheet(
+        "Boundary Diagram"
+    )
 
     sheet.append([
         "External Element",
@@ -1847,7 +2075,9 @@ def export_excel():
     # KEY CHARACTERISTICS
     # =====================================================
 
-    sheet = workbook.create_sheet("Key Characteristics")
+    sheet = workbook.create_sheet(
+        "Key Characteristics"
+    )
 
     sheet.append([
         "Component",
@@ -1890,7 +2120,9 @@ def export_excel():
     # FUNCTIONAL LINKS
     # =====================================================
 
-    sheet = workbook.create_sheet("Functional Links")
+    sheet = workbook.create_sheet(
+        "Functional Links"
+    )
 
     sheet.append([
         "Function",
@@ -1929,7 +2161,9 @@ def export_excel():
     # DFMEA
     # =====================================================
 
-    sheet = workbook.create_sheet("DFMEA")
+    sheet = workbook.create_sheet(
+        "DFMEA"
+    )
 
     sheet.append([
         "Component",
@@ -1999,7 +2233,9 @@ def export_excel():
     # PFMEA
     # =====================================================
 
-    sheet = workbook.create_sheet("PFMEA")
+    sheet = workbook.create_sheet(
+        "PFMEA"
+    )
 
     sheet.append([
         "Component",
@@ -2072,7 +2308,9 @@ def export_excel():
     # CONTROL PLAN
     # =====================================================
 
-    sheet = workbook.create_sheet("Control Plan")
+    sheet = workbook.create_sheet(
+        "Control Plan"
+    )
 
     sheet.append([
         "Component",
@@ -2134,7 +2372,6 @@ def export_excel():
         sheet.freeze_panes = "A2"
 
         for cell in sheet[1]:
-
             cell.font = cell.font.copy(
                 bold=True
             )
@@ -2183,23 +2420,25 @@ def export_excel():
 
 
 # =========================================================
+# INITIALIZE DATABASE
+# =========================================================
+
+setup_database()
+
+
+# =========================================================
 # START APPLICATION
 # =========================================================
 
 if __name__ == "__main__":
 
-    setup_database()
-
     print("")
     print("==============================================")
     print("      AUTOMOTIVE FMEA MANAGEMENT SYSTEM")
     print("==============================================")
-    print("      Server: http://127.0.0.1:5000")
-    print("==============================================")
-    print("")
 
     app.run(
-        debug=True,
-        host="127.0.0.1",
-        port=5000
+        debug=False,
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 5000))
     )
