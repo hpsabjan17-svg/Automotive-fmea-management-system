@@ -6,26 +6,41 @@
 
     <h1>Functional Requirement → Structure Linking</h1>
 
+
     <!-- SELECT PROJECT -->
-    <form method="GET" action="{{ url_for('functional_links') }}">
 
-        <label><b>Select Project</b></label>
+    <form method="GET" action="/functional-links">
 
-        <select name="project_id" onchange="this.form.submit()" required>
+        <label for="project_id">
+            <b>Select Project</b>
+        </label>
 
-            <option value="">-- Select Project --</option>
+        <select
+            id="project_id"
+            name="project_id"
+            onchange="this.form.submit()"
+            required
+        >
+
+            <option value="">
+                -- Select Project --
+            </option>
 
             {% for project in projects %}
 
-            <option value="{{ project['id'] }}"
+            <option
+                value="{{ project['id'] }}"
                 {% if selected_project_id|string == project['id']|string %}
-                selected
+                    selected
                 {% endif %}
             >
+
                 {{ project['project_name'] }}
+
                 {% if project['product_name'] %}
                     - {{ project['product_name'] }}
                 {% endif %}
+
             </option>
 
             {% endfor %}
@@ -39,18 +54,31 @@
 
     <br>
 
+
+    <!-- CREATE LINK -->
+
     <form method="POST">
 
         <!-- PROJECT -->
-        <input type="hidden"
-               name="project_id"
-               value="{{ selected_project_id }}">
+
+        <input
+            type="hidden"
+            name="project_id"
+            value="{{ selected_project_id }}"
+        >
 
 
         <!-- SELECT FUNCTION -->
-        <label><b>Select Function</b></label>
 
-        <select name="function_id" required>
+        <label for="function_id">
+            <b>Select Function</b>
+        </label>
+
+        <select
+            id="function_id"
+            name="function_id"
+            required
+        >
 
             <option value="">
                 -- Select Function --
@@ -76,9 +104,16 @@
 
 
         <!-- SELECT COMPONENT -->
-        <label><b>Select Component</b></label>
 
-        <select name="component_id" required>
+        <label for="component_id">
+            <b>Select Component</b>
+        </label>
+
+        <select
+            id="component_id"
+            name="component_id"
+            required
+        >
 
             <option value="">
                 -- Select Component --
@@ -104,9 +139,13 @@
 
 
         <!-- REQUIREMENT -->
-        <label><b>Linked Requirement</b></label>
+
+        <label for="requirement">
+            <b>Linked Requirement</b>
+        </label>
 
         <textarea
+            id="requirement"
             name="requirement"
             rows="4"
             placeholder="Enter linked requirement"
@@ -114,6 +153,7 @@
         ></textarea>
 
         <br><br>
+
 
         <button type="submit">
             + Create Link
@@ -131,51 +171,74 @@
 
     <h2>Functional Requirement → Structure Matrix</h2>
 
+
     {% if records %}
 
-    <table border="1" cellpadding="8" cellspacing="0" width="100%">
+    <div style="overflow-x:auto;">
 
-        <tr>
-            <th>Project</th>
-            <th>Function</th>
-            <th>Function Requirement</th>
-            <th>Component</th>
-            <th>Linked Requirement</th>
-        </tr>
+        <table>
 
-        {% for record in records %}
+            <thead>
 
-        <tr>
+                <tr>
 
-            <td>
-                {{ record['project_name'] }}
-            </td>
+                    <th>Project</th>
 
-            <td>
-                {{ record['function'] }}
-            </td>
+                    <th>Function</th>
 
-            <td>
-                {{ record['function_requirement'] }}
-            </td>
+                    <th>Function Requirement</th>
 
-            <td>
-                {{ record['component_name'] }}
-            </td>
+                    <th>Component</th>
 
-            <td>
-                {{ record['linked_requirement'] }}
-            </td>
+                    <th>Linked Requirement</th>
 
-        </tr>
+                </tr>
 
-        {% endfor %}
+            </thead>
 
-    </table>
+
+            <tbody>
+
+                {% for record in records %}
+
+                <tr>
+
+                    <td>
+                        {{ record['project_name'] }}
+                    </td>
+
+                    <td>
+                        {{ record['function'] }}
+                    </td>
+
+                    <td>
+                        {{ record['function_requirement'] }}
+                    </td>
+
+                    <td>
+                        {{ record['component_name'] }}
+                    </td>
+
+                    <td>
+                        {{ record['linked_requirement'] }}
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
 
     {% else %}
 
-    <p>No functional links created yet.</p>
+    <p>
+        No functional links created yet.
+    </p>
 
     {% endif %}
 
