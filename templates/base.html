@@ -105,6 +105,42 @@
 
         {% endblock %}
 
+
+        <!-- =================================================
+             PAGE NAVIGATION
+        ================================================== -->
+
+        {% if next_url or previous_url %}
+
+        <div class="page-navigation">
+
+            {% if previous_url %}
+
+                <a href="{{ previous_url }}"
+                   class="nav-btn">
+
+                    ← Previous
+
+                </a>
+
+            {% endif %}
+
+
+            {% if next_url %}
+
+                <a href="{{ next_url }}"
+                   class="nav-btn next-btn">
+
+                    Next →
+
+                </a>
+
+            {% endif %}
+
+        </div>
+
+        {% endif %}
+
     </main>
 
 
