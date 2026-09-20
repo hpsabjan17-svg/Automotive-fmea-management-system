@@ -3,8 +3,17 @@
    PROFESSIONAL UI
    ========================================================= */
 
+
+/* =========================================================
+   GLOBAL
+   ========================================================= */
+
 * {
     box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
 }
 
 body {
@@ -19,20 +28,31 @@ body {
    HEADER
    ========================================================= */
 
-header {
+.main-header {
     background: #111827;
     color: white;
-    padding: 18px 40px;
+    padding: 14px 28px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    position: relative;
+    z-index: 1000;
+}
+
+.header-inner {
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 25px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    gap: 20px;
 }
+
+
+/* =========================================================
+   LOGO
+   ========================================================= */
 
 .logo {
     font-size: 22px;
-    font-weight: bold;
+    font-weight: 700;
     letter-spacing: 0.5px;
     white-space: nowrap;
 }
@@ -42,29 +62,67 @@ header {
    NAVIGATION
    ========================================================= */
 
-nav {
+.main-nav {
     display: flex;
-    gap: 18px;
     align-items: center;
     justify-content: flex-end;
     flex-wrap: wrap;
-    max-width: 900px;
+    gap: 7px;
+    max-width: 1100px;
 }
 
-nav a {
+.main-nav a {
     color: white;
     text-decoration: none;
-    font-weight: 500;
-    font-size: 14px;
+    font-weight: 600;
+    font-size: 13px;
     padding: 7px 8px;
     border-radius: 6px;
-    transition: background 0.2s, color 0.2s;
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        transform 0.15s ease;
 }
 
-nav a:hover {
+.main-nav a:hover {
     background: #2563eb;
     color: white;
-    text-decoration: none;
+}
+
+.main-nav a:active {
+    transform: scale(0.97);
+}
+
+
+/* =========================================================
+   USER NAME
+   ========================================================= */
+
+.user-name {
+    color: #d1d5db;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 6px;
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   SIGN OUT
+   ========================================================= */
+
+.main-nav .logout-link {
+    background: #b42318;
+    color: white;
+    padding: 8px 13px;
+    margin-left: 4px;
+    border-radius: 7px;
+    font-weight: 700;
+}
+
+.main-nav .logout-link:hover {
+    background: #912018;
+    color: white;
 }
 
 
@@ -74,7 +132,36 @@ nav a:hover {
 
 main {
     min-height: calc(100vh - 130px);
-    padding: 35px;
+    padding: 30px;
+}
+
+
+/* =========================================================
+   GENERAL CONTAINER
+   ========================================================= */
+
+.container {
+    max-width: 1250px;
+    margin: 0 auto;
+    background: white;
+    padding: 30px;
+    border-radius: 14px;
+    box-shadow:
+        0 4px 15px rgba(0, 0, 0, 0.06);
+}
+
+.container h1 {
+    margin-top: 0;
+    color: #111827;
+}
+
+.container h2 {
+    margin-top: 28px;
+    color: #1f2937;
+}
+
+.container h3 {
+    color: #1f2937;
 }
 
 
@@ -92,7 +179,8 @@ main {
     padding: 35px;
     border-radius: 14px;
     margin-bottom: 30px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
+    box-shadow:
+        0 4px 15px rgba(0, 0, 0, 0.07);
 }
 
 .welcome h1 {
@@ -109,45 +197,13 @@ main {
 
 
 /* =========================================================
-   BUTTONS
-   ========================================================= */
-
-.primary-btn,
-button {
-    display: inline-block;
-    background: #2563eb;
-    color: white;
-    border: none;
-    padding: 11px 18px;
-    border-radius: 7px;
-    cursor: pointer;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 600;
-    transition: background 0.2s, transform 0.15s;
-}
-
-.primary-btn:hover,
-button:hover {
-    background: #1d4ed8;
-}
-
-.primary-btn:active,
-button:active {
-    transform: scale(0.98);
-}
-
-
-/* =========================================================
    MODULE CARDS
    ========================================================= */
 
 .modules {
     display: grid;
-    grid-template-columns: repeat(
-        auto-fit,
-        minmax(260px, 1fr)
-    );
+    grid-template-columns:
+        repeat(auto-fit, minmax(260px, 1fr));
     gap: 20px;
 }
 
@@ -156,16 +212,21 @@ button:active {
     padding: 24px;
     border-radius: 12px;
     border: 1px solid #e5e7eb;
-    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
+    box-shadow:
+        0 3px 12px rgba(0, 0, 0, 0.05);
+
     transition:
-        transform 0.2s,
-        box-shadow 0.2s,
-        border-color 0.2s;
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
 }
 
 .module-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 7px 20px rgba(0, 0, 0, 0.09);
+
+    box-shadow:
+        0 7px 20px rgba(0, 0, 0, 0.09);
+
     border-color: #bfdbfe;
 }
 
@@ -183,41 +244,11 @@ button:active {
 .module-card a {
     color: #2563eb;
     text-decoration: none;
-    font-weight: bold;
+    font-weight: 700;
 }
 
 .module-card a:hover {
     text-decoration: underline;
-}
-
-.module-card span {
-    color: #9ca3af;
-    font-size: 14px;
-}
-
-
-/* =========================================================
-   CONTAINER
-   ========================================================= */
-
-.container {
-    max-width: 1250px;
-    margin: auto;
-    background: white;
-    padding: 30px;
-    border-radius: 14px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
-    overflow-x: auto;
-}
-
-.container h1 {
-    margin-top: 0;
-    color: #111827;
-}
-
-.container h2 {
-    margin-top: 28px;
-    color: #1f2937;
 }
 
 
@@ -231,9 +262,9 @@ form {
 
 label {
     display: block;
-    margin-bottom: 7px;
+    margin: 12px 0 7px;
     color: #374151;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 input,
@@ -241,12 +272,20 @@ select,
 textarea {
     width: 100%;
     max-width: 600px;
+
     padding: 11px 12px;
+
     border: 1px solid #d1d5db;
     border-radius: 7px;
+
     font-size: 14px;
+
     background: white;
     color: #1f2937;
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
 }
 
 textarea {
@@ -263,9 +302,51 @@ input:focus,
 select:focus,
 textarea:focus {
     outline: none;
+
     border-color: #2563eb;
+
     box-shadow:
         0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+button,
+.primary-btn {
+    display: inline-block;
+
+    background: #2563eb;
+    color: white;
+
+    border: none;
+
+    padding: 11px 18px;
+
+    border-radius: 7px;
+
+    cursor: pointer;
+
+    text-decoration: none;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    transition:
+        background 0.2s ease,
+        transform 0.15s ease;
+}
+
+button:hover,
+.primary-btn:hover {
+    background: #1d4ed8;
+}
+
+button:active,
+.primary-btn:active {
+    transform: scale(0.98);
 }
 
 
@@ -276,23 +357,33 @@ textarea:focus {
 table {
     border-collapse: collapse;
     margin-top: 15px;
+
     background: white;
+
     width: 100%;
 }
 
 th {
     background: #111827;
     color: white;
+
     padding: 11px;
+
     text-align: left;
+
     font-size: 13px;
+
     white-space: nowrap;
 }
 
 td {
     padding: 10px;
-    border-bottom: 1px solid #e5e7eb;
+
+    border-bottom:
+        1px solid #e5e7eb;
+
     font-size: 13px;
+
     vertical-align: top;
 }
 
@@ -302,11 +393,12 @@ tr:hover td {
 
 
 /* =========================================================
-   HORIZONTAL SCROLL
+   TABLE WRAPPER
    ========================================================= */
 
-.container table {
-    min-width: 800px;
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
 }
 
 
@@ -315,7 +407,8 @@ tr:hover td {
    ========================================================= */
 
 a {
-    transition: color 0.2s;
+    transition:
+        color 0.2s ease;
 }
 
 
@@ -325,7 +418,10 @@ a {
 
 hr {
     border: none;
-    border-top: 1px solid #e5e7eb;
+
+    border-top:
+        1px solid #e5e7eb;
+
     margin: 30px 0;
 }
 
@@ -336,61 +432,466 @@ hr {
 
 footer {
     background: #111827;
+
     color: #d1d5db;
+
     text-align: center;
+
     padding: 20px;
+
     margin-top: 30px;
+
     font-size: 13px;
 }
 
-
-/* =========================================================
-   MOBILE
-   ========================================================= */
-
-@media (max-width: 900px) {
-
-    header {
-        padding: 16px 20px;
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    nav {
-        width: 100%;
-        max-width: none;
-        justify-content: flex-start;
-        gap: 8px;
-    }
-
-    nav a {
-        font-size: 13px;
-        padding: 6px 7px;
-    }
-
-    main {
-        padding: 20px;
-    }
+footer p {
+    margin: 0;
 }
 
 
 /* =========================================================
-   SMALL MOBILE
+   PAGE NAVIGATION
    ========================================================= */
 
-@media (max-width: 500px) {
+.page-navigation {
+    display: flex;
 
-    .logo {
-        font-size: 19px;
+    justify-content: space-between;
+    align-items: center;
+
+    margin: 35px auto 20px;
+
+    max-width: 1200px;
+
+    padding: 0 20px;
+}
+
+.nav-btn {
+    display: inline-block;
+
+    padding: 12px 24px;
+
+    border-radius: 8px;
+
+    background: #17365d;
+
+    color: white;
+
+    text-decoration: none;
+
+    font-weight: 600;
+
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+.nav-btn:hover {
+    background: #2f75b5;
+
+    color: white;
+
+    transform:
+        translateY(-1px);
+}
+
+.next-btn {
+    margin-left: auto;
+}
+
+
+/* =========================================================
+   PRODUCT STRUCTURE SUPPORT
+   ========================================================= */
+
+.product-structure-page {
+    max-width: 1400px;
+    margin: auto;
+}
+
+.structure-layout {
+    display: grid;
+
+    grid-template-columns:
+        minmax(300px, 390px)
+        minmax(0, 1fr);
+
+    gap: 24px;
+
+    align-items: start;
+}
+
+.form-card,
+.structure-card {
+    background: white;
+
+    border:
+        1px solid #e5e7eb;
+
+    border-radius: 14px;
+
+    padding: 24px;
+
+    box-shadow:
+        0 4px 18px rgba(15, 23, 42, 0.05);
+}
+
+.form-card h2,
+.structure-card h2 {
+    margin-top: 0;
+}
+
+.form-card input,
+.form-card select,
+.form-card textarea {
+    width: 100%;
+    max-width: none;
+}
+
+.product-tree {
+    width: 100%;
+
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    padding:
+        20px 10px 35px;
+}
+
+
+/* =========================================================
+   FUNCTIONAL LINKING / MATRIX SUPPORT
+   ========================================================= */
+
+.functional-link-page {
+    max-width: 1450px;
+    margin: auto;
+}
+
+.matrix-wrapper {
+    width: 100%;
+
+    overflow-x: auto;
+    overflow-y: visible;
+
+    border:
+        1px solid #dbe2ea;
+
+    border-radius: 10px;
+
+    background: white;
+}
+
+.matrix-table {
+    border-collapse: separate;
+    border-spacing: 0;
+
+    width: max-content;
+    min-width: 100%;
+
+    margin: 0;
+}
+
+.matrix-table th,
+.matrix-table td {
+    border-right:
+        1px solid #dbe2ea;
+
+    border-bottom:
+        1px solid #dbe2ea;
+
+    padding: 8px;
+}
+
+.matrix-table thead th {
+    background: #17365d;
+    color: white;
+
+    position: sticky;
+    top: 0;
+
+    z-index: 5;
+}
+
+.matrix-table .function-column {
+    min-width: 300px;
+
+    position: sticky;
+    left: 0;
+
+    z-index: 4;
+
+    background: #f8fafc;
+
+    color: #172b4d;
+}
+
+.matrix-table thead .function-column {
+    background: #111827;
+    color: white;
+
+    z-index: 8;
+}
+
+.matrix-component-header {
+    min-width: 130px;
+
+    max-width: 160px;
+
+    text-align: center;
+
+    vertical-align: bottom;
+
+    height: 150px;
+}
+
+.matrix-component-name {
+    writing-mode: vertical-rl;
+
+    transform: rotate(180deg);
+
+    margin: auto;
+
+    max-height: 120px;
+
+    font-weight: 700;
+}
+
+.matrix-cell {
+    width: 70px;
+
+    min-width: 70px;
+
+    height: 60px;
+
+    text-align: center;
+
+    vertical-align: middle;
+
+    background: white;
+}
+
+.matrix-cell:hover {
+    background: #eff6ff;
+}
+
+.matrix-link-btn {
+    width: 42px;
+    height: 42px;
+
+    padding: 0;
+
+    border-radius: 8px;
+
+    border:
+        1px solid #cbd5e1;
+
+    background: white;
+
+    color: #64748b;
+
+    font-size: 18px;
+
+    cursor: pointer;
+}
+
+.matrix-link-btn:hover {
+    background: #dbeafe;
+
+    border-color: #2563eb;
+
+    color: #1d4ed8;
+}
+
+.matrix-link-btn.linked {
+    background: #16a34a;
+
+    border-color: #15803d;
+
+    color: white;
+
+    font-weight: 700;
+}
+
+.matrix-link-btn.linked:hover {
+    background: #15803d;
+}
+
+.matrix-function-name {
+    font-weight: 700;
+
+    color: #172b4d;
+
+    margin-bottom: 5px;
+}
+
+.matrix-requirement {
+    font-size: 12px;
+
+    line-height: 1.4;
+
+    color: #667085;
+}
+
+
+/* =========================================================
+   STATUS / INFO BOXES
+   ========================================================= */
+
+.info-box {
+    background: #eff6ff;
+
+    border:
+        1px solid #bfdbfe;
+
+    color: #1e3a8a;
+
+    padding: 12px 15px;
+
+    border-radius: 8px;
+
+    margin: 15px 0;
+}
+
+.success-box {
+    background: #ecfdf3;
+
+    border:
+        1px solid #abefc6;
+
+    color: #067647;
+
+    padding: 12px 15px;
+
+    border-radius: 8px;
+
+    margin: 15px 0;
+}
+
+.warning-box {
+    background: #fffaeb;
+
+    border:
+        1px solid #fedf89;
+
+    color: #b54708;
+
+    padding: 12px 15px;
+
+    border-radius: 8px;
+
+    margin: 15px 0;
+}
+
+
+/* =========================================================
+   EDIT BUTTON
+   ========================================================= */
+
+.edit-btn {
+    display: inline-block;
+
+    padding: 7px 13px;
+
+    background: #2f75b5;
+
+    color: white;
+
+    text-decoration: none;
+
+    border-radius: 6px;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    white-space: nowrap;
+}
+
+.edit-btn:hover {
+    background: #17365d;
+
+    color: white;
+}
+
+
+/* =========================================================
+   RESPONSIVE - TABLET
+   ========================================================= */
+
+@media (max-width: 1100px) {
+
+    .header-inner {
+        flex-direction: column;
+
+        align-items: flex-start;
     }
 
-    nav {
+    .main-nav {
+        width: 100%;
+
+        max-width: none;
+
+        justify-content: flex-start;
+    }
+
+    main {
+        padding: 22px;
+    }
+
+}
+
+
+/* =========================================================
+   RESPONSIVE - PRODUCT STRUCTURE
+   ========================================================= */
+
+@media (max-width: 950px) {
+
+    .structure-layout {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+
+/* =========================================================
+   RESPONSIVE - MOBILE
+   ========================================================= */
+
+@media (max-width: 650px) {
+
+    .main-header {
+        padding: 14px 18px;
+    }
+
+    .logo {
+        font-size: 20px;
+    }
+
+    .main-nav {
         gap: 5px;
     }
 
-    nav a {
+    .main-nav a {
         font-size: 12px;
-        padding: 5px 6px;
+
+        padding:
+            6px 7px;
+    }
+
+    .user-name {
+        font-size: 11px;
+    }
+
+    main {
+        padding: 15px;
+    }
+
+    .container {
+        padding: 20px;
+
+        border-radius: 10px;
     }
 
     .welcome {
@@ -405,44 +906,52 @@ footer {
         font-size: 14px;
     }
 
-    .container {
-        padding: 20px;
+    .page-navigation {
+        padding: 0 5px;
+
+        margin-top: 25px;
     }
 
-    table {
-        min-width: 800px;
+    .nav-btn {
+        padding:
+            10px 16px;
+
+        font-size: 13px;
     }
+
+    .form-card,
+    .structure-card {
+        padding: 16px;
+    }
+
 }
+
 
 /* =========================================================
-   PAGE NAVIGATION
+   VERY SMALL MOBILE
    ========================================================= */
 
-.page-navigation {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin: 35px auto 20px;
-    max-width: 1200px;
-    padding: 0 20px;
-}
+@media (max-width: 450px) {
 
-.nav-btn {
-    display: inline-block;
-    padding: 12px 24px;
-    border-radius: 8px;
-    background: #17365D;
-    color: white;
-    text-decoration: none;
-    font-weight: 600;
-    transition: 0.2s ease;
-}
+    .logo {
+        font-size: 18px;
+    }
 
-.nav-btn:hover {
-    background: #2F75B5;
-    transform: translateY(-1px);
-}
+    .main-nav a {
+        font-size: 11px;
 
-.next-btn {
-    margin-left: auto;
+        padding:
+            5px 6px;
+    }
+
+    .container {
+        padding: 16px;
+    }
+
+    .page-navigation {
+        flex-wrap: wrap;
+
+        gap: 10px;
+    }
+
 }
