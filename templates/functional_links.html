@@ -1,247 +1,559 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div class="container functional-link-page">
+    <div class="page-header">
+        <div>
+            <h1>Functional Analysis → Structure Linking</h1>
+            <p>
+                Allocate each functional requirement to the Product Structure
+                using the engineering-style matrix below.
+            </p>
+        </div>
+    </div>
 
-<div class="container">
+    <div class="link-instructions">
+        <strong>How to link:</strong>
+        Select a project, then click a function box and a component box.
+        You can also click any matrix cell directly. A <b>✓</b> means the
+        requirement is allocated to that component. Click it again to remove the link.
+    </div>
 
-    <h1>Functional Requirement → Structure Linking</h1>
-
-
-    <!-- SELECT PROJECT -->
-
-    <form method="GET" action="/functional-links">
-
-        <label for="project_id">
-            <b>Select Project</b>
-        </label>
-
-        <select
-            id="project_id"
-            name="project_id"
-            onchange="this.form.submit()"
-            required
-        >
-
-            <option value="">
-                -- Select Project --
-            </option>
-
+    <form method="GET" action="{{ url_for('functional_links') }}" class="project-picker">
+        <label for="project_id">Select Project</label>
+        <select id="project_id" name="project_id" onchange="this.form.submit()">
+            <option value="">Select Project</option>
             {% for project in projects %}
-
-            <option
-                value="{{ project['id'] }}"
-                {% if selected_project_id|string == project['id']|string %}
-                    selected
-                {% endif %}
-            >
-
-                {{ project['project_name'] }}
-
-                {% if project['product_name'] %}
-                    - {{ project['product_name'] }}
-                {% endif %}
-
-            </option>
-
+                <option value="{{ project.id }}"
+                    {% if selected_project_id|string == project.id|string %}selected{% endif %}>
+                    {{ project.project_name }}{% if project.product_name %} — {{ project.product_name }}{% endif %}
+                </option>
             {% endfor %}
-
         </select>
-
     </form>
-
 
     {% if selected_project_id %}
+        {% if functions and components %}
+            <div class="matrix-toolbar">
+                <div>
+                    <span class="status-dot"></span>
+                    <span id="matrixStatus">Ready — click a function and component box to create a link.</span>
+                </div>
+                <div class="matrix-legend">
+                    <span class="legend-item linked">✓ Linked</span>
+                    <span class="legend-item">○ Not linked</span>
+                </div>
+            </div>
 
-    <br>
+            <div class="matrix-viewport">
+                <table class="allocation-matrix">
+                    <thead>
+                        <tr>
+                            <th class="function-header sticky-left">
+                                Functional Analysis
+                            </th>
+                            {% for component in components %}
+                                <th class="component-header" data-component-id="{{ component.id }}">
+                                    <button type="button"
+                                            class="component-box"
+                                            data-component-id="{{ component.id }}"
+                                            title="Click to select this component">
+                                        <span class="component-level">L{{ component.level }}</span>
+                                        <span class="component-name">{{ component.component_name }}</span>
+                                        {% if component.label or component.part_number %}
+                                            <span class="component-meta">
+                                                {% if component.label %}{{ component.label }}{% endif %}
+                                                {% if component.part_number %} · {{ component.part_number }}{% endif %}
+                                            </span>
+                                        {% endif %}
+                                    </button>
+                                </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for function in functions %}
+                            <tr data-function-id="{{ function.id }}">
+                                <th class="function-cell sticky-left">
+                                    <button type="button"
+                                            class="function-box"
+                                            data-function-id="{{ function.id }}"
+                                            title="Click to select this function">
+                                        <span class="function-number">F{{ loop.index }}</span>
+                                        <span class="function-name">{{ function.function }}</span>
+                                        {% if function.requirement %}
+                                            <span class="function-requirement">{{ function.requirement }}</span>
+                                        {% endif %}
+                                    </button>
+                                </th>
 
+                                {% for component in components %}
+                                    {% set link_key = function.id|string + ':' + component.id|string %}
+                                    {% set link_id = linked_map.get(link_key) %}
+                                    <td class="matrix-cell {% if link_id %}is-linked{% endif %}"
+                                        data-function-id="{{ function.id }}"
+                                        data-component-id="{{ component.id }}">
+                                        <button type="button"
+                                                class="link-cell-button"
+                                                data-function-id="{{ function.id }}"
+                                                data-component-id="{{ component.id }}"
+                                                aria-label="Toggle link between {{ function.function }} and {{ component.component_name }}">
+                                            <span class="link-mark">{% if link_id %}✓{% else %}○{% endif %}</span>
+                                        </button>
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
 
-    <!-- CREATE LINK -->
-
-    <form method="POST">
-
-        <!-- PROJECT -->
-
-        <input
-            type="hidden"
-            name="project_id"
-            value="{{ selected_project_id }}"
-        >
-
-
-        <!-- SELECT FUNCTION -->
-
-        <label for="function_id">
-            <b>Select Function</b>
-        </label>
-
-        <select
-            id="function_id"
-            name="function_id"
-            required
-        >
-
-            <option value="">
-                -- Select Function --
-            </option>
-
-            {% for function in functions %}
-
-            <option value="{{ function['id'] }}">
-
-                {{ function['function'] }}
-
-                {% if function['requirement'] %}
-                    - {{ function['requirement'] }}
-                {% endif %}
-
-            </option>
-
-            {% endfor %}
-
-        </select>
-
-        <br><br>
-
-
-        <!-- SELECT COMPONENT -->
-
-        <label for="component_id">
-            <b>Select Component</b>
-        </label>
-
-        <select
-            id="component_id"
-            name="component_id"
-            required
-        >
-
-            <option value="">
-                -- Select Component --
-            </option>
-
-            {% for component in components %}
-
-            <option value="{{ component['id'] }}">
-
-                {{ component['component_name'] }}
-
-                {% if component['part_number'] %}
-                    - {{ component['part_number'] }}
-                {% endif %}
-
-            </option>
-
-            {% endfor %}
-
-        </select>
-
-        <br><br>
-
-
-        <!-- REQUIREMENT -->
-
-        <label for="requirement">
-            <b>Linked Requirement</b>
-        </label>
-
-        <textarea
-            id="requirement"
-            name="requirement"
-            rows="4"
-            placeholder="Enter linked requirement"
-            required
-        ></textarea>
-
-        <br><br>
-
-
-        <button type="submit">
-            + Create Link
-        </button>
-
-    </form>
-
+            <div class="selection-help">
+                <div><strong>Selected Function:</strong> <span id="selectedFunction">None</span></div>
+                <div><strong>Selected Component:</strong> <span id="selectedComponent">None</span></div>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <h3>Matrix cannot be displayed yet</h3>
+                <p>Add at least one Functional Analysis record and one Product Structure component for this project.</p>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="empty-state">
+            <h3>Select a project</h3>
+            <p>The Function → Structure allocation matrix will appear here.</p>
+        </div>
     {% endif %}
-
 
     <hr>
 
-
-    <!-- EXISTING LINKS -->
-
-    <h2>Functional Requirement → Structure Matrix</h2>
-
-
-    {% if records %}
-
-    <div style="overflow-x:auto;">
-
-        <table>
-
-            <thead>
-
-                <tr>
-
-                    <th>Project</th>
-
-                    <th>Function</th>
-
-                    <th>Function Requirement</th>
-
-                    <th>Component</th>
-
-                    <th>Linked Requirement</th>
-
-                </tr>
-
-            </thead>
-
-
-            <tbody>
-
-                {% for record in records %}
-
-                <tr>
-
-                    <td>
-                        {{ record['project_name'] }}
-                    </td>
-
-                    <td>
-                        {{ record['function'] }}
-                    </td>
-
-                    <td>
-                        {{ record['function_requirement'] }}
-                    </td>
-
-                    <td>
-                        {{ record['component_name'] }}
-                    </td>
-
-                    <td>
-                        {{ record['linked_requirement'] }}
-                    </td>
-
-                </tr>
-
-                {% endfor %}
-
-            </tbody>
-
-        </table>
-
-    </div>
-
-
-    {% else %}
-
-    <p>
-        No functional links created yet.
-    </p>
-
-    {% endif %}
-
+    <section class="link-records">
+        <h2>Saved Functional Links</h2>
+        {% if records %}
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Function</th>
+                            <th>Function Requirement</th>
+                            <th>Component</th>
+                            <th>Linked Requirement</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                            <tr>
+                                <td>{{ record.id }}</td>
+                                <td>{{ record.function or '—' }}</td>
+                                <td>{{ record.function_requirement or '—' }}</td>
+                                <td><strong>{{ record.component_name or '—' }}</strong></td>
+                                <td>{{ record.linked_requirement or '—' }}</td>
+                                <td>
+                                    <a class="edit-btn"
+                                       href="{{ url_for('edit_functional_links', record_id=record.id) }}">
+                                        ✏️ Edit
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p>No functional links have been created yet.</p>
+        {% endif %}
+    </section>
 </div>
 
+<script>
+(function () {
+    const projectId = "{{ selected_project_id }}";
+    let selectedFunctionId = null;
+    let selectedComponentId = null;
+
+    const status = document.getElementById("matrixStatus");
+    const selectedFunction = document.getElementById("selectedFunction");
+    const selectedComponent = document.getElementById("selectedComponent");
+
+    function setStatus(message) {
+        if (status) status.textContent = message;
+    }
+
+    function clearSelections() {
+        document.querySelectorAll(".function-box.is-selected").forEach(el => el.classList.remove("is-selected"));
+        document.querySelectorAll(".component-box.is-selected").forEach(el => el.classList.remove("is-selected"));
+        document.querySelectorAll(".matrix-cell.is-focused").forEach(el => el.classList.remove("is-focused"));
+    }
+
+    function selectFunction(id) {
+        selectedFunctionId = String(id);
+        const box = document.querySelector(`.function-box[data-function-id="${CSS.escape(String(id))}"]`);
+        clearSelections();
+        if (box) box.classList.add("is-selected");
+        const row = document.querySelector(`tr[data-function-id="${CSS.escape(String(id))}"]`);
+        if (row) row.querySelectorAll(".matrix-cell").forEach(cell => cell.classList.add("is-focused"));
+        selectedFunction.textContent = box ? box.querySelector(".function-name").textContent : "Selected";
+        selectedComponent.textContent = selectedComponentId ? selectedComponent.textContent : "None";
+        setStatus("Function selected — now click a component box, or click a matrix cell.");
+
+        // Support either order: function → component OR component → function.
+        if (selectedComponentId) {
+            toggleLink(selectedFunctionId, selectedComponentId);
+        }
+    }
+
+    function selectComponent(id) {
+        selectedComponentId = String(id);
+        const box = document.querySelector(`.component-box[data-component-id="${CSS.escape(String(id))}"]`);
+        document.querySelectorAll(".component-box.is-selected").forEach(el => el.classList.remove("is-selected"));
+        document.querySelectorAll(".matrix-cell.is-focused").forEach(el => el.classList.remove("is-focused"));
+        if (box) box.classList.add("is-selected");
+        const header = document.querySelector(`.component-header[data-component-id="${CSS.escape(String(id))}"]`);
+        if (header) {
+            document.querySelectorAll(".matrix-cell").forEach(cell => {
+                if (cell.dataset.componentId === String(id)) cell.classList.add("is-focused");
+            });
+        }
+        selectedComponent.textContent = box ? box.querySelector(".component-name").textContent : "Selected";
+        setStatus(selectedFunctionId
+            ? "Both selected — the relationship will be toggled now."
+            : "Component selected — click a function box next.");
+
+        if (selectedFunctionId) {
+            toggleLink(selectedFunctionId, selectedComponentId);
+        }
+    }
+
+    async function toggleLink(functionId, componentId) {
+        setStatus("Saving link…");
+        try {
+            const response = await fetch("{{ url_for('functional_links') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Accept": "application/json" },
+                body: JSON.stringify({
+                    project_id: projectId,
+                    function_id: functionId,
+                    component_id: componentId
+                })
+            });
+
+            const result = await response.json();
+            if (!response.ok || !result.success) throw new Error(result.message || "Unable to save link.");
+
+            const cell = document.querySelector(`.matrix-cell[data-function-id="${CSS.escape(String(functionId))}"][data-component-id="${CSS.escape(String(componentId))}"]`);
+            if (cell) {
+                cell.classList.toggle("is-linked", result.linked);
+                const mark = cell.querySelector(".link-mark");
+                if (mark) mark.textContent = result.linked ? "✓" : "○";
+            }
+
+            setStatus(result.linked ? "Link created successfully." : "Link removed successfully.");
+            selectedFunctionId = null;
+            selectedComponentId = null;
+            clearSelections();
+            selectedFunction.textContent = "None";
+            selectedComponent.textContent = "None";
+        } catch (error) {
+            setStatus(error.message || "Unable to save the link.");
+        }
+    }
+
+    document.querySelectorAll(".function-box").forEach(button => {
+        button.addEventListener("click", function () {
+            selectFunction(this.dataset.functionId);
+        });
+    });
+
+    document.querySelectorAll(".component-box").forEach(button => {
+        button.addEventListener("click", function () {
+            selectComponent(this.dataset.componentId);
+        });
+    });
+
+    document.querySelectorAll(".link-cell-button").forEach(button => {
+        button.addEventListener("click", function () {
+            const functionId = this.dataset.functionId;
+            const componentId = this.dataset.componentId;
+            toggleLink(functionId, componentId);
+        });
+    });
+})();
+</script>
+
+<style>
+.functional-link-page {
+    max-width: 1450px;
+    margin: auto;
+}
+
+.page-header h1 {
+    margin-bottom: 6px;
+}
+
+.page-header p {
+    margin-top: 0;
+    color: #667085;
+}
+
+.link-instructions {
+    margin: 18px 0;
+    padding: 14px 16px;
+    border-left: 4px solid #2f75b5;
+    background: #f5f9fd;
+    color: #344054;
+    border-radius: 8px;
+    line-height: 1.55;
+}
+
+.project-picker {
+    max-width: 520px;
+    margin-bottom: 22px;
+}
+
+.matrix-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+    padding: 12px 14px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #70ad47;
+    margin-right: 7px;
+}
+
+.matrix-legend {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    padding: 5px 9px;
+    border-radius: 5px;
+    background: #eef2f6;
+}
+
+.legend-item.linked {
+    background: #e6f4ea;
+    color: #166534;
+    font-weight: 700;
+}
+
+.matrix-viewport {
+    width: 100%;
+    max-height: 680px;
+    overflow: auto;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.allocation-matrix {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: max-content;
+    min-width: 100%;
+    margin: 0;
+}
+
+.allocation-matrix th,
+.allocation-matrix td {
+    border-right: 1px solid #dbe2ea;
+    border-bottom: 1px solid #dbe2ea;
+    padding: 7px;
+}
+
+.allocation-matrix thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: #eef3f8;
+    color: #172b4d;
+    text-align: center;
+    vertical-align: bottom;
+}
+
+.allocation-matrix .sticky-left {
+    position: sticky;
+    left: 0;
+    z-index: 6;
+    width: 340px;
+    min-width: 340px;
+    max-width: 340px;
+    background: #fff;
+}
+
+.allocation-matrix thead .sticky-left {
+    z-index: 8;
+    background: #17365d;
+    color: white;
+}
+
+.component-header {
+    width: 145px;
+    min-width: 145px;
+    max-width: 145px;
+}
+
+.component-box,
+.function-box {
+    width: 100%;
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    color: #172b4d;
+    border-radius: 8px;
+    padding: 9px;
+    cursor: pointer;
+    text-align: center;
+    transition: .15s ease;
+}
+
+.component-box:hover,
+.function-box:hover {
+    border-color: #2f75b5;
+    background: #f5f9fd;
+}
+
+.component-box.is-selected,
+.function-box.is-selected {
+    border: 2px solid #2563eb;
+    background: #eaf2ff;
+    box-shadow: 0 0 0 2px rgba(37,99,235,.12);
+}
+
+.component-level,
+.function-number {
+    display: block;
+    font-size: 10px;
+    font-weight: 800;
+    color: #667085;
+    margin-bottom: 4px;
+}
+
+.component-name,
+.function-name {
+    display: block;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.component-meta,
+.function-requirement {
+    display: block;
+    margin-top: 5px;
+    font-size: 10px;
+    color: #667085;
+    line-height: 1.3;
+}
+
+.function-cell {
+    padding: 8px !important;
+    vertical-align: middle;
+}
+
+.matrix-cell {
+    width: 145px;
+    min-width: 145px;
+    height: 72px;
+    padding: 5px !important;
+    text-align: center;
+    background: #fff;
+}
+
+.matrix-cell.is-focused {
+    background: #f0f6ff;
+}
+
+.matrix-cell.is-linked {
+    background: #e9f7ee;
+}
+
+.link-cell-button {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    padding: 0;
+    border: 2px solid #cbd5e1;
+    background: #fff;
+    color: #98a2b3;
+    font-size: 21px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.link-cell-button:hover {
+    border-color: #2f75b5;
+    background: #eef6ff;
+}
+
+.matrix-cell.is-linked .link-cell-button {
+    border-color: #2e7d32;
+    background: #2e7d32;
+    color: white;
+}
+
+.selection-help {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 14px;
+    padding: 12px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.empty-state {
+    margin-top: 20px;
+    padding: 55px 20px;
+    text-align: center;
+    color: #667085;
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+}
+
+.table-scroll {
+    overflow-x: auto;
+}
+
+.edit-btn {
+    display: inline-block;
+    padding: 7px 13px;
+    background: #2f75b5;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+    .allocation-matrix .sticky-left {
+        width: 260px;
+        min-width: 260px;
+        max-width: 260px;
+    }
+
+    .selection-help {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
 {% endblock %}
