@@ -23,76 +23,94 @@
          HEADER
     ====================================================== -->
 
-    <header>
+    <header class="main-header">
 
-        <div class="logo">
-            Automotive FMEA
+        <div class="header-inner">
+
+            <!-- LOGO -->
+
+            <div class="logo">
+                Automotive FMEA
+            </div>
+
+
+            <!-- NAVIGATION -->
+
+            <nav class="main-nav">
+
+                <a href="/dashboard">
+                    Dashboard
+                </a>
+
+                <a href="/project">
+                    Project Details
+                </a>
+
+                <a href="/functional-analysis">
+                    Functional Analysis
+                </a>
+
+                <a href="/boundary-diagram">
+                    Boundary Diagram
+                </a>
+
+                <a href="/product-structure">
+                    Product Structure
+                </a>
+
+                <a href="/key-characteristics">
+                    Key Characteristics
+                </a>
+
+                <a href="/functional-links">
+                    Functional Linking
+                </a>
+
+                <a href="/dfmea">
+                    DFMEA
+                </a>
+
+                <a href="/pfmea">
+                    PFMEA
+                </a>
+
+                <a href="/control-plan">
+                    Control Plan
+                </a>
+
+                <a href="/reports">
+                    Reports
+                </a>
+
+
+                <!-- USER / SIGN OUT -->
+
+                {% if session.get('user_id') %}
+
+                    <span class="user-name">
+
+                        {{ session.get('name')
+                           or session.get('username')
+                           or 'User' }}
+
+                    </span>
+
+
+                    <a href="{{ url_for('logout') }}"
+                       class="logout-link">
+
+                        Sign Out
+
+                    </a>
+
+                {% endif %}
+
+            </nav>
+
         </div>
 
-
-        <!-- =================================================
-             NAVIGATION
-        ================================================== -->
-
-        <nav>
-
-            <a href="{{ url_for('dashboard') }}">
-                Dashboard
-            </a>
-
-
-            <a href="{{ url_for('project') }}">
-                Project Details
-            </a>
-
-
-            <a href="{{ url_for('functional_analysis') }}">
-                Functional Analysis
-            </a>
-
-
-            <a href="{{ url_for('boundary_diagram') }}">
-                Boundary Diagram
-            </a>
-
-
-            <a href="{{ url_for('product_structure') }}">
-                Product Structure
-            </a>
-
-
-            <a href="{{ url_for('key_characteristics') }}">
-                Key Characteristics
-            </a>
-
-
-            <a href="{{ url_for('functional_links') }}">
-                Functional Linking
-            </a>
-
-
-            <a href="{{ url_for('dfmea') }}">
-                DFMEA
-            </a>
-
-
-            <a href="{{ url_for('pfmea') }}">
-                PFMEA
-            </a>
-
-
-            <a href="{{ url_for('control_plan') }}">
-                Control Plan
-            </a>
-
-
-            <a href="{{ url_for('reports') }}">
-                Reports
-            </a>
-
-        </nav>
-
     </header>
+
 
 
     <!-- =====================================================
@@ -106,17 +124,109 @@
         {% endblock %}
 
 
+
         <!-- =================================================
              PAGE NAVIGATION
         ================================================== -->
 
-        {% if next_url or previous_url %}
-
         <div class="page-navigation">
 
-            {% if previous_url %}
 
-                <a href="{{ previous_url }}"
+            <!-- ================= PREVIOUS ================= -->
+
+            {% if request.path == "/project" %}
+
+                <a href="/dashboard"
+                   class="nav-btn">
+
+                    ← Previous
+
+                </a>
+
+
+            {% elif request.path == "/functional-analysis" %}
+
+                <a href="/project"
+                   class="nav-btn">
+
+                    ← Previous
+
+                </a>
+
+
+            {% elif request.path == "/boundary-diagram" %}
+
+                <a href="/functional-analysis"
+                   class="nav-btn">
+
+                    ← Previous
+
+                </a>
+
+
+            {% elif request.path == "/product-structure" %}
+
+                <a href="/boundary-diagram"
+                   class="nav-btn">
+
+                    ← Previous
+
+                </a>
+
+
+            {% elif request.path == "/key-characteristics" %}
+
+                <a href="/product-structure"
+                   class="nav-btn">
+
+                    ← Previous
+
+                </a>
+
+
+            {% elif request.path == "/functional-links" %}
+
+                <a href="/key-characteristics"
+                   class="nav-btn">
+
+                    ← Previous
+
+                </a>
+
+
+            {% elif request.path == "/dfmea" %}
+
+                <a href="/functional-links"
+                   class="nav-btn">
+
+                    ← Previous
+
+                </a>
+
+
+            {% elif request.path == "/pfmea" %}
+
+                <a href="/dfmea"
+                   class="nav-btn">
+
+                    ← Previous
+
+                </a>
+
+
+            {% elif request.path == "/control-plan" %}
+
+                <a href="/pfmea"
+                   class="nav-btn">
+
+                    ← Previous
+
+                </a>
+
+
+            {% elif request.path == "/reports" %}
+
+                <a href="/control-plan"
                    class="nav-btn">
 
                     ← Previous
@@ -126,9 +236,102 @@
             {% endif %}
 
 
-            {% if next_url %}
 
-                <a href="{{ next_url }}"
+            <!-- ================= NEXT ================= -->
+
+            {% if request.path == "/dashboard" %}
+
+                <a href="/project"
+                   class="nav-btn next-btn">
+
+                    Next →
+
+                </a>
+
+
+            {% elif request.path == "/project" %}
+
+                <a href="/functional-analysis"
+                   class="nav-btn next-btn">
+
+                    Next →
+
+                </a>
+
+
+            {% elif request.path == "/functional-analysis" %}
+
+                <a href="/boundary-diagram"
+                   class="nav-btn next-btn">
+
+                    Next →
+
+                </a>
+
+
+            {% elif request.path == "/boundary-diagram" %}
+
+                <a href="/product-structure"
+                   class="nav-btn next-btn">
+
+                    Next →
+
+                </a>
+
+
+            {% elif request.path == "/product-structure" %}
+
+                <a href="/key-characteristics"
+                   class="nav-btn next-btn">
+
+                    Next →
+
+                </a>
+
+
+            {% elif request.path == "/key-characteristics" %}
+
+                <a href="/functional-links"
+                   class="nav-btn next-btn">
+
+                    Next →
+
+                </a>
+
+
+            {% elif request.path == "/functional-links" %}
+
+                <a href="/dfmea"
+                   class="nav-btn next-btn">
+
+                    Next →
+
+                </a>
+
+
+            {% elif request.path == "/dfmea" %}
+
+                <a href="/pfmea"
+                   class="nav-btn next-btn">
+
+                    Next →
+
+                </a>
+
+
+            {% elif request.path == "/pfmea" %}
+
+                <a href="/control-plan"
+                   class="nav-btn next-btn">
+
+                    Next →
+
+                </a>
+
+
+            {% elif request.path == "/control-plan" %}
+
+                <a href="/reports"
                    class="nav-btn next-btn">
 
                     Next →
@@ -139,9 +342,8 @@
 
         </div>
 
-        {% endif %}
-
     </main>
+
 
 
     <!-- =====================================================
@@ -155,6 +357,7 @@
         </p>
 
     </footer>
+
 
 
     <!-- =====================================================
